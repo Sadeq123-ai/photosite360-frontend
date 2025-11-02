@@ -1,0 +1,53 @@
+.public-view {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+}
+
+.public-header {
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 20px;
+  text-align: center;
+  border-bottom: 2px solid #667eea;
+}
+
+.public-header h1 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+}
+
+.public-header p {
+  margin: 0;
+  color: #a0aec0;
+  font-size: 14px;
+}
+
+.panorama-container {
+  flex: 1;
+  width: 100%;
+}
+
+.loading-message,
+.error-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: white;
+  text-align: center;
+  padding: 40px;
+}
+
+.error-message h2 {
+  font-size: 32px;
+  margin-bottom: 16px;
+}
+
+.error-message p {
+  font-size: 18px;
+  color: #a0aec0;
+}
