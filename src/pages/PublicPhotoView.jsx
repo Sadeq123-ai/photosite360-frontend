@@ -27,112 +27,35 @@ const PublicPhotoView = () => {
   }
 
   const initViewer = (photoData) => {
-  const loadPannellum = () => {
-    if (window.pannellum) {
-      createViewer(photoData)
-      return
-    }
+    // Cargar Pannellum si no está cargado
+    if (!window.pannellum) {
+      // Cargar CSS
+      if (!document.querySelector('link[href*="pannellum.css"]')) {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = 'https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css'
+        document.head.appendChild(link)
+      }
 
-    // Cargar CSS de Pannellum
-    if (!document.querySelector('link[href*="pannellum.css"]')) {
-      const link = document.createElement('link')
-      link.rel = 'stylesheet'
-      link.href = 'https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css'
-      document.head.appendChild(link)
-    }
-
-    // Cargar JavaScript de Pannellum
-    if (!document.querySelector('script[src*="pannellum.js"]')) {
+      // Cargar JS
       const script = document.createElement('script')
       script.src = 'https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js'
       script.onload = () => createViewer(photoData)
       script.onerror = () => {
-        console.error('Error loading Pannellum')
+        console.error('Failed to load Pannellum')
         setError(true)
       }
       document.body.appendChild(script)
+    } else {
+      createViewer(photoData)
     }
   }
 
   const createViewer = (photoData) => {
-    if (!window.pannellum) {
-      console.error('Pannellum not loaded')
-      return
-    }
-
     const container = document.getElementById('panorama-viewer')
-    if (!container) {
-      console.error('Container not found')
-      return
-    }
-
-    // Limpiar contenedor previo
-    container.innerHTML = ''
-
-    // Forzar HTTPS en la URL de la imagen
-    let imageUrl = photoData.url
-    if (imageUrl.startsWith('http://')) {
-      imageUrl = imageUrl.replace('http://', 'https://')
-    }
-
-    console.log('Loading image URL:', imageUrl)
+    if (!container || !window.pannellum) return
 
     try {
-      // Configuración optimizada para móviles
-      window.pannellum.viewer(container, {
-        type: 'equirectangular',
-        panorama: imageUrl,
-        autoLoad: true,
-        autoRotate: -2,
-        showControls: true,
-        showFullscreenCtrl: true,
-        showZoomCtrl: true,
-        mouseZoom: false, // Desactivar zoom con ratón en móvil
-        touchZoom: true,  // Activar zoom táctil
-        draggable: true,
-        compass: true,
-        hotSpotDebug: false,
-        backgroundColor: [0, 0, 0],
-        avoidShowBackground: false,
-        crossOrigin: 'anonymous'
-      })
-    } catch (error) {
-      console.error('Error creating Pannellum viewer:', error)
-      setError(true)
-    }
-  }
-
-  loadPannellum()
-}
-
-    const createViewer = (photoData) => {
-      if (!window.pannellum) return
-
-      const container = document.getElementById('panorama-viewer')
-      if (!container) return
-
-      const orientMatch = photoData.description?.match(/orientation:\[([-\d.eE+]+),([-\d.eE+]+),([-\d.eE+]+),([-\d.eE+]+)\]/)
-      let initialYaw = 0
-      let initialPitch = 0
-
-      if (orientMatch) {
-        const qx = parseFloat(orientMatch[1])
-        const qy = parseFloat(orientMatch[2])
-        const qz = parseFloat(orientMatch[3])
-        const qw = parseFloat(orientMatch[4])
-
-        const sinr_cosp = 2 * (qw * qx + qy * qz)
-        const cosr_cosp = 1 - 2 * (qx * qx + qy * qy)
-        const sinp = 2 * (qw * qy - qz * qx)
-        const pitch = Math.abs(sinp) >= 1 ? Math.sign(sinp) * Math.PI / 2 : Math.asin(sinp)
-        const siny_cosp = 2 * (qw * qz + qx * qy)
-        const cosy_cosp = 1 - 2 * (qy * qy + qz * qz)
-        const yaw = Math.atan2(siny_cosp, cosy_cosp)
-
-        initialYaw = yaw * (180 / Math.PI)
-        initialPitch = pitch * (180 / Math.PI)
-      }
-
       window.pannellum.viewer(container, {
         type: 'equirectangular',
         panorama: photoData.url,
@@ -141,14 +64,12 @@ const PublicPhotoView = () => {
         showFullscreenCtrl: true,
         showZoomCtrl: true,
         mouseZoom: true,
-        draggable: true,
-        yaw: initialYaw,
-        pitch: initialPitch,
-        hfov: 90
+        draggable: true
       })
+    } catch (error) {
+      console.error('Error creating viewer:', error)
+      setError(true)
     }
-
-    loadPannellum()
   }
 
   if (loading) {
@@ -163,8 +84,8 @@ const PublicPhotoView = () => {
     return (
       <div className="public-view">
         <div className="error-message">
-          <h2>Foto no encontrada</h2>
-          <p>Esta foto no existe o ha sido eliminada.</p>
+          <h2>Error al cargar la foto</h2>
+          <p>No se pudo cargar la imagen 360°.</p>
         </div>
       </div>
     )
