@@ -27,26 +27,83 @@ const PublicPhotoView = () => {
   }
 
   const initViewer = (photoData) => {
-    const loadPannellum = () => {
-      if (window.pannellum) {
-        createViewer(photoData)
-        return
-      }
-
-      if (!document.querySelector('link[href*="pannellum.css"]')) {
-        const link = document.createElement('link')
-        link.rel = 'stylesheet'
-        link.href = 'https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css'
-        document.head.appendChild(link)
-      }
-
-      if (!document.querySelector('script[src*="pannellum.js"]')) {
-        const script = document.createElement('script')
-        script.src = 'https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js'
-        script.onload = () => createViewer(photoData)
-        document.body.appendChild(script)
-      }
+  const loadPannellum = () => {
+    if (window.pannellum) {
+      createViewer(photoData)
+      return
     }
+
+    // Cargar CSS de Pannellum
+    if (!document.querySelector('link[href*="pannellum.css"]')) {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = 'https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css'
+      document.head.appendChild(link)
+    }
+
+    // Cargar JavaScript de Pannellum
+    if (!document.querySelector('script[src*="pannellum.js"]')) {
+      const script = document.createElement('script')
+      script.src = 'https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js'
+      script.onload = () => createViewer(photoData)
+      script.onerror = () => {
+        console.error('Error loading Pannellum')
+        setError(true)
+      }
+      document.body.appendChild(script)
+    }
+  }
+
+  const createViewer = (photoData) => {
+    if (!window.pannellum) {
+      console.error('Pannellum not loaded')
+      return
+    }
+
+    const container = document.getElementById('panorama-viewer')
+    if (!container) {
+      console.error('Container not found')
+      return
+    }
+
+    // Limpiar contenedor previo
+    container.innerHTML = ''
+
+    // Forzar HTTPS en la URL de la imagen
+    let imageUrl = photoData.url
+    if (imageUrl.startsWith('http://')) {
+      imageUrl = imageUrl.replace('http://', 'https://')
+    }
+
+    console.log('Loading image URL:', imageUrl)
+
+    try {
+      // Configuración optimizada para móviles
+      window.pannellum.viewer(container, {
+        type: 'equirectangular',
+        panorama: imageUrl,
+        autoLoad: true,
+        autoRotate: -2,
+        showControls: true,
+        showFullscreenCtrl: true,
+        showZoomCtrl: true,
+        mouseZoom: false, // Desactivar zoom con ratón en móvil
+        touchZoom: true,  // Activar zoom táctil
+        draggable: true,
+        compass: true,
+        hotSpotDebug: false,
+        backgroundColor: [0, 0, 0],
+        avoidShowBackground: false,
+        crossOrigin: 'anonymous'
+      })
+    } catch (error) {
+      console.error('Error creating Pannellum viewer:', error)
+      setError(true)
+    }
+  }
+
+  loadPannellum()
+}
 
     const createViewer = (photoData) => {
       if (!window.pannellum) return
