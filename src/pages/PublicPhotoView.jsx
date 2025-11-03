@@ -15,7 +15,7 @@ const PublicPhotoView = () => {
 
   const loadPhoto = async () => {
     try {
-      const response = await axios.get(`http://localhost:8001/api/public/photos/${photoId}`)
+      const response = await axios.get(`https://web-production-51970.up.railway.app/api/public/photos/${photoId}`)
       setPhoto(response.data)
       initViewer(response.data)
     } catch (error) {

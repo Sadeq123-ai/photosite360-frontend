@@ -1,7 +1,10 @@
 import axios from 'axios'
 
+// URL del backend en producción
+const API_BASE_URL = 'https://web-production-51970.up.railway.app/api'
+
 const api = axios.create({
-  baseURL: (import.meta.env.VITE_API_URL || 'http://localhost:8001') + '/api',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
   }
