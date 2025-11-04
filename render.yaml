@@ -3,8 +3,13 @@ services:
     name: photosite360-frontend
     plan: free
     env: static
-    buildCommand: npm install && npx vite build
+    buildCommand: npm install && npm run build
     staticPublishPath: dist
-    envVars:
-      - key: VITE_API_URL
-        value: https://web-production-51970.up.railway.app
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:;"

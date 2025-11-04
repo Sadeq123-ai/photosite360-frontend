@@ -144,10 +144,10 @@ const ProjectDetail = () => {
   }
 
   const copyPhotoURL = (photo) => {
-    const url = `${window.location.origin}/view/${photo.id}`
-    navigator.clipboard.writeText(url)
-    toast.success('URL copiada al portapapeles')
-  }
+  const url = `${window.location.origin}/view/${photo.id}`
+  navigator.clipboard.writeText(url)
+  toast.success('URL copiada al portapapeles')
+}
 
   const exportToCSV = () => {
     const photosWithCoords = photos.filter(p => p.latitude && p.longitude)

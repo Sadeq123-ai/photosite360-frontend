@@ -54,6 +54,8 @@ function App() {
         }
       />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* Catch all route - importante para SPA */}
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )
 }
