@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import CameraMap3D from '../components/CameraMap3D'
@@ -120,7 +120,7 @@ const ProjectDetail = () => {
   }
 
   const handleDeletePhoto = async (photoId, photoTitle) => {
-    if (!confirm(`¿Estás seguro de eliminar "${photoTitle}"?`)) return
+    if (!confirm(`Â¿EstÃ¡s seguro de eliminar "${photoTitle}"?`)) return
 
     try {
       await api.delete(`/projects/${id}/photos/${photoId}`)
@@ -133,9 +133,9 @@ const ProjectDetail = () => {
   }
 
   const copyPhotoURL = (photo) => {
-    const url = `${window.location.origin}/view/${photo.id}`
+    const url = `https://photosite360-frontend.onrender.com/projects/${id}/view/${photo.id}`
     navigator.clipboard.writeText(url)
-    toast.success('URL pública copiada al portapapeles')
+    toast.success('URL pÃºblica copiada al portapapeles')
   }
 
   const exportToCSV = () => {
@@ -153,7 +153,7 @@ const ProjectDetail = () => {
       const y = parseFloat(photo.latitude) || 0
       const zMatch = photo.description?.match(/z:([-\d.]+)/)
       const z = zMatch ? parseFloat(zMatch[1]) : 0
-      const url = `${window.location.origin}/view/${photo.id}`
+      const url = `https://photosite360-frontend.onrender.com/projects/${id}/view/${photo.id}`
       
       csv += `"${photo.title}",${x},${y},${z},"${url}","360 Photo"\n`
     })
@@ -197,7 +197,7 @@ const ProjectDetail = () => {
           <div>
             <h1>{project?.name}</h1>
             {project?.description && <p className="project-desc">{project.description}</p>}
-            {project?.location && <p className="project-loc">📍 {project.location}</p>}
+            {project?.location && <p className="project-loc">ðŸ“ {project.location}</p>}
           </div>
 
           <div className="project-actions">
@@ -226,7 +226,7 @@ const ProjectDetail = () => {
         {photosWithCoords.length > 0 && (
           <div className="viewer-3d-section">
             <div className="viewer-3d-header">
-              <h2>Vista 3D - Navegación por Coordenadas</h2>
+              <h2>Vista 3D - NavegaciÃ³n por Coordenadas</h2>
               <button 
                 className="btn-expand"
                 onClick={() => setShow3DMapFullscreen(true)}
@@ -247,7 +247,7 @@ const ProjectDetail = () => {
         )}
 
         <div className="photos-section">
-          <h2>Fotos 360° del Proyecto ({photos.length})</h2>
+          <h2>Fotos 360Â° del Proyecto ({photos.length})</h2>
           
           {photos.length > 0 ? (
             <div className="photos-grid">
@@ -272,20 +272,20 @@ const ProjectDetail = () => {
                     />
                     <div className="photo-overlay">
                       <Eye size={32} />
-                      <span>Ver en 360°</span>
+                      <span>Ver en 360Â°</span>
                     </div>
                   </div>
                   <div className="photo-info">
                     <h4>{photo.title}</h4>
                     {photo.latitude && photo.longitude && (
                       <span className="photo-coords">
-                        📍 X:{photo.longitude}, Y:{photo.latitude}
+                        ðŸ“ X:{photo.longitude}, Y:{photo.latitude}
                       </span>
                     )}
                     <button 
                       className="btn-copy-url"
                       onClick={() => copyPhotoURL(photo)}
-                      title="Copiar URL pública"
+                      title="Copiar URL pÃºblica"
                     >
                       <Link2 size={16} />
                       Copiar URL
@@ -297,7 +297,7 @@ const ProjectDetail = () => {
           ) : (
             <div className="empty-photos">
               <ImageIcon size={64} color="#cbd5e0" />
-              <h3>No hay fotos aún</h3>
+              <h3>No hay fotos aÃºn</h3>
               <p>Sube la primera foto de este proyecto</p>
               <label className="btn btn-primary">
                 <Upload size={20} />
