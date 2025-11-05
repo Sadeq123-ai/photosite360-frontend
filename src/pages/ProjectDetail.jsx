@@ -139,38 +139,39 @@ const ProjectDetail = () => {
   }
 
   const exportToCSV = () => {
-    const photosWithCoords = photos.filter(p => p.latitude && p.longitude)
-    
-    if (photosWithCoords.length === 0) {
-      toast.error('No hay fotos con coordenadas para exportar')
-      return
-    }
-
-    let csv = 'Name,X,Y,Z,URL,Description\n'
-    
-    photosWithCoords.forEach(photo => {
-      const x = parseFloat(photo.longitude) || 0
-      const y = parseFloat(photo.latitude) || 0
-      const zMatch = photo.description?.match(/z:([-\d.]+)/)
-      const z = zMatch ? parseFloat(zMatch[1]) : 0
-      const url = `https://photosite360-frontend.onrender.com/projects/${id}/view/${photo.id}`
-      
-      csv += `"${photo.title}",${x},${y},${z},"${url}","360 Photo"\n`
-    })
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    const downloadUrl = URL.createObjectURL(blob)
-    
-    link.setAttribute('href', downloadUrl)
-    link.setAttribute('download', `${project.name}_Coordenadas.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    
-    toast.success('Archivo CSV exportado para Revit')
+  const photosWithCoords = photos.filter(p => p.latitude && p.longitude)
+  if (photosWithCoords.length === 0) {
+    toast.error('No hay fotos con coordenadas para exportar')
+    return
   }
+  
+  // Encabezados corregidos en español
+  let csv = 'Nombre de Imagen,X,Y,Z,URL Imagen\n'
+  
+  photosWithCoords.forEach(photo => {
+    const x = parseFloat(photo.longitude) || 0
+    const y = parseFloat(photo.latitude) || 0
+    const zMatch = photo.description?.match(/z:([-\d.]+)/)
+    const z = zMatch ? parseFloat(zMatch[1]) : 0
+    
+    // URL CORRECTA con projectId
+    const url = `https://photosite360-frontend.onrender.com/projects/${id}/view/${photo.id}`
+    
+    // Fila con las columnas correctas
+    csv += `"${photo.title}",${x},${y},${z},"${url}"\n`
+  })
+  
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  const downloadUrl = URL.createObjectURL(blob)
+  link.setAttribute('href', downloadUrl)
+  link.setAttribute('download', `${project.name}_Coordenadas.csv`)
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  toast.success('Archivo CSV exportado para Revit')
+}
 
   const photosWithCoords = photos.filter(p => p.latitude && p.longitude)
 
