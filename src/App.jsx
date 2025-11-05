@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import Projects from './pages/Projects'
 import ProjectDetail from './pages/ProjectDetail'
 import PublicPhotoView from './pages/PublicPhotoView'
+import ProjectPhotoView from './pages/ProjectPhotoView'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -17,44 +18,51 @@ function App() {
         display: 'flex', 
         justifyContent: 'center', 
         alignItems: 'center', 
-        height: '100vh' 
+        height: '100vh',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+        fontSize: '18px',
+        fontWeight: '500'
       }}>
-        <div>Cargando...</div>
+        <div>🔄 Cargando PhotoSite360...</div>
       </div>
     )
   }
 
   return (
     <Routes>
+      {/* 🔓 RUTAS PÚBLICAS - Sin autenticación */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/view/:photoId" element={<PublicPhotoView />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/projects"
-        element={
-          <ProtectedRoute>
-            <Projects />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/projects/:id"
-        element={
-          <ProtectedRoute>
-            <ProjectDetail />
-          </ProtectedRoute>
-        }
-      />
+      
+      {/* 🔒 RUTAS PROTEGIDAS - Requieren autenticación */}
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <Dashboard />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/projects" element={
+        <ProtectedRoute>
+          <Projects />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/projects/:id" element={
+        <ProtectedRoute>
+          <ProjectDetail />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/projects/:id/view/:photoId" element={
+        <ProtectedRoute>
+          <ProjectPhotoView />
+        </ProtectedRoute>
+      } />
+      
+      {/* 🎯 RUTAS POR DEFECTO */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      {/* Catch all route - importante para SPA */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )

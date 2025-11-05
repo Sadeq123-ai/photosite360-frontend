@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import Viewer360 from '../components/Viewer360'
 import CameraMap3D from '../components/CameraMap3D'
 import api from '../config/axios'
 import toast from 'react-hot-toast'
@@ -15,8 +14,6 @@ const ProjectDetail = () => {
   const [photos, setPhotos] = useState([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
-  const [selectedPhoto, setSelectedPhoto] = useState(null)
-  const [showViewer, setShowViewer] = useState(false)
   const [show3DMapFullscreen, setShow3DMapFullscreen] = useState(false)
 
   useEffect(() => {
@@ -119,15 +116,7 @@ const ProjectDetail = () => {
   }
 
   const handlePhotoClick = (photo) => {
-    setSelectedPhoto(photo)
-    setShowViewer(true)
-  }
-
-  const handleNavigatePhoto = (photoId) => {
-    const photo = photos.find(p => p.id === photoId)
-    if (photo) {
-      setSelectedPhoto(photo)
-    }
+    navigate(`/projects/${id}/view/${photo.id}`)
   }
 
   const handleDeletePhoto = async (photoId, photoTitle) => {
@@ -144,10 +133,10 @@ const ProjectDetail = () => {
   }
 
   const copyPhotoURL = (photo) => {
-  const url = `${window.location.origin}/view/${photo.id}`
-  navigator.clipboard.writeText(url)
-  toast.success('URL copiada al portapapeles')
-}
+    const url = `${window.location.origin}/view/${photo.id}`
+    navigator.clipboard.writeText(url)
+    toast.success('URL pública copiada al portapapeles')
+  }
 
   const exportToCSV = () => {
     const photosWithCoords = photos.filter(p => p.latitude && p.longitude)
@@ -160,9 +149,8 @@ const ProjectDetail = () => {
     let csv = 'Name,X,Y,Z,URL,Description\n'
     
     photosWithCoords.forEach(photo => {
-      // INTERCAMBIADO: latitude (que era X) ahora es Y, longitude (que era Y) ahora es X
-      const x = parseFloat(photo.longitude) || 0  // Ahora X = longitude
-      const y = parseFloat(photo.latitude) || 0   // Ahora Y = latitude
+      const x = parseFloat(photo.longitude) || 0
+      const y = parseFloat(photo.latitude) || 0
       const zMatch = photo.description?.match(/z:([-\d.]+)/)
       const z = zMatch ? parseFloat(zMatch[1]) : 0
       const url = `${window.location.origin}/view/${photo.id}`
@@ -252,7 +240,6 @@ const ProjectDetail = () => {
               <CameraMap3D
                 photos={photos}
                 onPhotoClick={handlePhotoClick}
-                activePhotoId={selectedPhoto?.id}
                 embedded={true}
               />
             </div>
@@ -298,7 +285,7 @@ const ProjectDetail = () => {
                     <button 
                       className="btn-copy-url"
                       onClick={() => copyPhotoURL(photo)}
-                      title="Copiar URL de esta foto"
+                      title="Copiar URL pública"
                     >
                       <Link2 size={16} />
                       Copiar URL
@@ -328,20 +315,10 @@ const ProjectDetail = () => {
         </div>
       </div>
 
-      {showViewer && selectedPhoto && (
-        <Viewer360
-          photo={selectedPhoto}
-          photos={photos}
-          onClose={() => setShowViewer(false)}
-          onNavigate={handleNavigatePhoto}
-        />
-      )}
-
       {show3DMapFullscreen && (
         <CameraMap3D
           photos={photos}
           onPhotoClick={handlePhotoClick}
-          activePhotoId={selectedPhoto?.id}
           onClose={() => setShow3DMapFullscreen(false)}
         />
       )}
