@@ -146,7 +146,7 @@ const ProjectDetail = () => {
   }
   
   // Encabezados corregidos en español
-  let csv = 'Nombre de Imagen,X,Y,Z,URL Imagen\n'
+  let csv = 'Nombre de Imagen;X;Y;Z;URL Imagen\n'
   
   photosWithCoords.forEach(photo => {
     const x = parseFloat(photo.longitude) || 0
@@ -158,7 +158,7 @@ const ProjectDetail = () => {
     const url = `https://photosite360-frontend.onrender.com/projects/${id}/view/${photo.id}`
     
     // Fila con las columnas correctas
-    csv += `"${photo.title}",${x},${y},${z},"${url}"\n`
+    csv += `"${photo.title}";${x};${y};${z};"${url}"\n`
   })
   
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
