@@ -4,7 +4,13 @@ import { useAuth } from '../context/AuthContext'
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth()
 
-  // Mientras carga, mostrar loading
+  console.log('🛡️ ProtectedRoute - Estado:', { 
+    tieneUsuario: !!user, 
+    cargando: loading,
+    rutaActual: window.location.pathname 
+  })
+
+  // Mientras verifica autenticación
   if (loading) {
     return (
       <div style={{ 
@@ -22,12 +28,14 @@ const ProtectedRoute = ({ children }) => {
     )
   }
 
-  // Si no hay usuario, redirigir a login
+  // Si NO hay usuario, redirigir a login
   if (!user) {
+    console.log('🔐 ProtectedRoute: Redirigiendo a login')
     return <Navigate to="/login" replace />
   }
 
-  // Si hay usuario, mostrar el contenido protegido
+  // Si hay usuario, mostrar el contenido
+  console.log('✅ ProtectedRoute: Usuario autenticado, mostrando contenido')
   return children
 }
 
