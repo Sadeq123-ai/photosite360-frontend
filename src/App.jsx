@@ -31,12 +31,12 @@ function App() {
 
   return (
     <Routes>
-      {/* 🔓 RUTAS PÚBLICAS - Sin autenticación */}
+      {/* 🎯 RUTAS PÚBLICAS - ABSOLUTAMENTE SIN AUTENTICACIÓN */}
+      <Route path="/view/:photoId" element={<PublicPhotoView />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/view/:photoId" element={<PublicPhotoView />} />
       
-      {/* 🔒 RUTAS PROTEGIDAS - Requieren autenticación */}
+      {/* 🔒 RUTAS PROTEGIDAS - REQUIEREN LOGIN */}
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Dashboard />
@@ -61,8 +61,10 @@ function App() {
         </ProtectedRoute>
       } />
       
-      {/* 🎯 RUTAS POR DEFECTO */}
+      {/* 🚀 RUTAS POR DEFECTO */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      
+      {/* ❌ Capturar todas las demás rutas */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )
