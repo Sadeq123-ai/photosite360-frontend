@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import { X, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react'
 import './Viewer360.css'
 
