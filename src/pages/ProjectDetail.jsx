@@ -120,7 +120,7 @@ const ProjectDetail = () => {
   }
 
   const handleDeletePhoto = async (photoId, photoTitle) => {
-    if (!confirm(`Â¿EstÃ¡s seguro de eliminar "${photoTitle}"?`)) return
+    if (!confirm(`Estas seguro de eliminar "${photoTitle}"?`)) return
 
     try {
       await api.delete(`/projects/${id}/photos/${photoId}`)
@@ -135,7 +135,7 @@ const ProjectDetail = () => {
   const copyPhotoURL = (photo) => {
     const url = `https://photosite360-frontend.onrender.com/projects/${id}/view/${photo.id}`
     navigator.clipboard.writeText(url)
-    toast.success('URL pÃºblica copiada al portapapeles')
+    toast.success('URL publica copiada al portapapeles')
   }
 
   const exportToCSV = () => {
@@ -198,7 +198,7 @@ const ProjectDetail = () => {
           <div>
             <h1>{project?.name}</h1>
             {project?.description && <p className="project-desc">{project.description}</p>}
-            {project?.location && <p className="project-loc">ðŸ“ {project.location}</p>}
+            {project?.location && <p className="project-loc">➤ {project.location}</p>}
           </div>
 
           <div className="project-actions">
@@ -227,7 +227,7 @@ const ProjectDetail = () => {
         {photosWithCoords.length > 0 && (
           <div className="viewer-3d-section">
             <div className="viewer-3d-header">
-              <h2>Vista 3D - NavegaciÃ³n por Coordenadas</h2>
+              <h2>Vista 3D - Navegacion por Coordenadas</h2>
               <button 
                 className="btn-expand"
                 onClick={() => setShow3DMapFullscreen(true)}
@@ -248,7 +248,7 @@ const ProjectDetail = () => {
         )}
 
         <div className="photos-section">
-          <h2>Fotos 360Â° del Proyecto ({photos.length})</h2>
+          <h2>Fotos 360 grados del Proyecto ({photos.length})</h2>
           
           {photos.length > 0 ? (
             <div className="photos-grid">
@@ -273,20 +273,20 @@ const ProjectDetail = () => {
                     />
                     <div className="photo-overlay">
                       <Eye size={32} />
-                      <span>Ver en 360Â°</span>
+                      <span>Ver en 360 grados</span>
                     </div>
                   </div>
                   <div className="photo-info">
                     <h4>{photo.title}</h4>
                     {photo.latitude && photo.longitude && (
                       <span className="photo-coords">
-                        ðŸ“ X:{photo.longitude}, Y:{photo.latitude}
+                        ➤ X:{photo.longitude}, Y:{photo.latitude}
                       </span>
                     )}
                     <button 
                       className="btn-copy-url"
                       onClick={() => copyPhotoURL(photo)}
-                      title="Copiar URL pÃºblica"
+                      title="Copiar URL publica"
                     >
                       <Link2 size={16} />
                       Copiar URL
@@ -298,7 +298,7 @@ const ProjectDetail = () => {
           ) : (
             <div className="empty-photos">
               <ImageIcon size={64} color="#cbd5e0" />
-              <h3>No hay fotos aÃºn</h3>
+              <h3>No hay fotos aun</h3>
               <p>Sube la primera foto de este proyecto</p>
               <label className="btn btn-primary">
                 <Upload size={20} />
