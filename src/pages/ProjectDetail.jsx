@@ -198,7 +198,7 @@ const ProjectDetail = () => {
           <div>
             <h1>{project?.name}</h1>
             {project?.description && <p className="project-desc">{project.description}</p>}
-            {project?.location && <p className="project-loc">➤ {project.location}</p>}
+            {project?.location && <p className="project-loc">&#128205; {project.location}</p>}
           </div>
 
           <div className="project-actions">
@@ -227,7 +227,7 @@ const ProjectDetail = () => {
         {photosWithCoords.length > 0 && (
           <div className="viewer-3d-section">
             <div className="viewer-3d-header">
-              <h2>Vista 3D - Navegacion por Coordenadas</h2>
+              <h2>Vista 3D - Navegaci&#243;n por Coordenadas</h2>
               <button 
                 className="btn-expand"
                 onClick={() => setShow3DMapFullscreen(true)}
@@ -248,7 +248,7 @@ const ProjectDetail = () => {
         )}
 
         <div className="photos-section">
-          <h2>Fotos 360 grados del Proyecto ({photos.length})</h2>
+          <h2>Fotos 360&#176; del Proyecto ({photos.length})</h2>
           
           {photos.length > 0 ? (
             <div className="photos-grid">
@@ -273,14 +273,14 @@ const ProjectDetail = () => {
                     />
                     <div className="photo-overlay">
                       <Eye size={32} />
-                      <span>Ver en 360 grados</span>
+                      <span>Ver en 360&#176;</span>
                     </div>
                   </div>
                   <div className="photo-info">
                     <h4>{photo.title}</h4>
                     {photo.latitude && photo.longitude && (
                       <span className="photo-coords">
-                        ➤ X:{photo.longitude}, Y:{photo.latitude}
+                        &#128205; X:{photo.longitude}, Y:{photo.latitude}
                       </span>
                     )}
                     <button 
