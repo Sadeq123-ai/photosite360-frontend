@@ -145,19 +145,20 @@ const ProjectDetail = () => {
     return
   }
   
-  // Encabezados corregidos en español
   let csv = 'Nombre de Imagen;X;Y;Z;URL Imagen\n'
   
   photosWithCoords.forEach(photo => {
-    const x = parseFloat(photo.longitude) || 0
-    const y = parseFloat(photo.latitude) || 0
-    const zMatch = photo.description?.match(/z:([-\d.]+)/)
-    const z = zMatch ? parseFloat(zMatch[1]) : 0
+    // BACKEND MULTIPLICA ×1000, NOSOTROS DIVIDIMOS ÷10
+    const x = (parseFloat(photo.latitude) / 100000) || 0      // ÷100000
+    const y = (parseFloat(photo.longitude) / 100000) || 0     // ÷100000
     
-    // URL CORRECTA con projectId
+    let z = 0
+    const zMatch = photo.description?.match(/z:\s*([-\d.,]+)/i)
+    if (zMatch) {
+      z = (parseFloat(zMatch[1]) / 100000) || 0               // ÷100000
+    }
+    
     const url = `https://photosite360-frontend.onrender.com/projects/${id}/view/${photo.id}`
-    
-    // Fila con las columnas correctas
     csv += `"${photo.title}";${x};${y};${z};"${url}"\n`
   })
   
@@ -170,7 +171,7 @@ const ProjectDetail = () => {
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
-  toast.success('Archivo CSV exportado para Revit')
+  toast.success('Archivo CSV exportado')
 }
 
   const photosWithCoords = photos.filter(p => p.latitude && p.longitude)
@@ -198,7 +199,7 @@ const ProjectDetail = () => {
           <div>
             <h1>{project?.name}</h1>
             {project?.description && <p className="project-desc">{project.description}</p>}
-            {project?.location && <p className="project-loc">&#128205; {project.location}</p>}
+            {project?.location && <p className="project-loc">📍 {project.location}</p>}
           </div>
 
           <div className="project-actions">
@@ -227,7 +228,7 @@ const ProjectDetail = () => {
         {photosWithCoords.length > 0 && (
           <div className="viewer-3d-section">
             <div className="viewer-3d-header">
-              <h2>Vista 3D - Navegaci&#243;n por Coordenadas</h2>
+              <h2>Vista 3D - Navegacion por Coordenadas</h2>
               <button 
                 className="btn-expand"
                 onClick={() => setShow3DMapFullscreen(true)}
@@ -280,7 +281,7 @@ const ProjectDetail = () => {
                     <h4>{photo.title}</h4>
                     {photo.latitude && photo.longitude && (
                       <span className="photo-coords">
-                        &#128205; X:{photo.longitude}, Y:{photo.latitude}
+                        📍 X:{photo.latitude}, Y:{photo.longitude}
                       </span>
                     )}
                     <button 
