@@ -1,7 +1,8 @@
 ﻿import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Camera, Mail, Lock, User } from 'lucide-react'
+import toast from 'react-hot-toast'
 import './Auth.css'
 
 const Register = () => {
@@ -13,7 +14,6 @@ const Register = () => {
   })
   const [loading, setLoading] = useState(false)
   const { register } = useAuth()
-  const navigate = useNavigate()
 
   const handleChange = (e) => {
     setFormData({
@@ -25,22 +25,35 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    // ✅ Validaciones mejoradas
+    if (!formData.full_name.trim() || !formData.email.trim() || !formData.password) {
+      toast.error('Por favor completa todos los campos')
+      return
+    }
+
+    if (formData.password.length < 6) {
+      toast.error('La contraseña debe tener al menos 6 caracteres')
+      return
+    }
+
     if (formData.password !== formData.confirmPassword) {
-      alert('Las contraseñas no coinciden')
+      toast.error('Las contraseñas no coinciden')
       return
     }
 
     setLoading(true)
     
     try {
+      // ✅ Asegurar que los datos son strings
       await register({
-        full_name: formData.full_name,
-        email: formData.email,
+        full_name: String(formData.full_name).trim(),
+        email: String(formData.email).trim(),
         password: formData.password
       })
-      navigate('/dashboard')
+      // ✅ La redirección se maneja en AuthContext, no aquí
     } catch (error) {
       console.error('Registration failed:', error)
+      // El error ya se muestra en AuthContext
     } finally {
       setLoading(false)
     }
@@ -69,7 +82,7 @@ const Register = () => {
               value={formData.full_name}
               onChange={handleChange}
               required
-              autoFocus
+              disabled={loading}
               placeholder="Juan Pérez"
             />
           </div>
@@ -87,6 +100,7 @@ const Register = () => {
               value={formData.email}
               onChange={handleChange}
               required
+              disabled={loading}
               placeholder="tu@email.com"
             />
           </div>
@@ -104,6 +118,7 @@ const Register = () => {
               value={formData.password}
               onChange={handleChange}
               required
+              disabled={loading}
               placeholder="Mínimo 6 caracteres"
               minLength={6}
             />
@@ -122,11 +137,16 @@ const Register = () => {
               value={formData.confirmPassword}
               onChange={handleChange}
               required
+              disabled={loading}
               placeholder="Confirma tu contraseña"
             />
           </div>
 
-          <button type="submit" className="btn btn-primary" disabled={loading}>
+          <button 
+            type="submit" 
+            className="btn btn-primary" 
+            disabled={loading}
+          >
             {loading ? 'Creando cuenta...' : 'Crear cuenta'}
           </button>
         </form>

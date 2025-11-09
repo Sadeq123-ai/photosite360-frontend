@@ -1,105 +1,105 @@
 ﻿import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
-import { Mail, Lock, LogIn } from 'lucide-react'
-import './Auth.css'
+import './Login.css'
 
 const Login = () => {
-  const navigate = useNavigate()
-  const { login } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   })
   const [loading, setLoading] = useState(false)
+  const { login } = useAuth()
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
+    
+    // ✅ Validaciones mejoradas
+    if (!formData.email || !formData.password) {
+      toast.error('Por favor completa todos los campos')
+      return
+    }
+
+    const email = String(formData.email).trim()
+    const password = formData.password
+
+    if (!email || !password) {
+      toast.error('Email y contraseña son requeridos')
+      return
+    }
 
     try {
-      await login({
-        email: formData.email,
-        password: formData.password
-      })
-      toast.success('¡Bienvenido!')
-      navigate('/dashboard')
+      setLoading(true)
+      console.log('Iniciando proceso de login...')
+      await login(email, password)
+      console.log('Login exitoso - redirección en progreso')
     } catch (error) {
-      console.error('Login error:', error)
-      const errorMessage = error?.response?.data?.detail || 'Email o contraseña incorrectos'
-      toast.error(errorMessage)
+      console.error('Error en el formulario de login:', error)
+      // El error ya se muestra en AuthContext
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <div className="auth-header">
-          <h1>📸 PhotoSite360</h1>
-          <h2>Iniciar Sesión</h2>
-          <p>Gestiona tus proyectos de fotografía 360°</p>
+    <div className="login-page">
+      <div className="login-container">
+        <div className="login-header">
+          <h1>🌍 PhotoSite360</h1>
+          <p>Inicia sesión en tu cuenta</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
+        <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label htmlFor="email">
-              <Mail size={20} />
-              Email
-            </label>
+            <label htmlFor="email">Email</label>
             <input
+              type="email"
               id="email"
               name="email"
-              type="email"
-              className="input"
               value={formData.email}
               onChange={handleChange}
               placeholder="tu@email.com"
               required
-              autoFocus
+              disabled={loading}
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">
-              <Lock size={20} />
-              Contraseña
-            </label>
+            <label htmlFor="password">Contraseña</label>
             <input
+              type="password"
               id="password"
               name="password"
-              type="password"
-              className="input"
               value={formData.password}
               onChange={handleChange}
-              placeholder="••••••••"
+              placeholder="Tu contraseña"
               required
+              disabled={loading}
             />
           </div>
 
-          <button
-            type="submit"
-            className="btn btn-primary btn-full"
+          <button 
+            type="submit" 
+            className="btn btn-primary login-btn"
             disabled={loading}
           >
-            <LogIn size={20} />
             {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
         </form>
 
-        <div className="auth-footer">
+        <div className="login-footer">
           <p>
             ¿No tienes cuenta?{' '}
-            <Link to="/register" className="auth-link">
+            <Link to="/register" className="link">
               Regístrate aquí
             </Link>
           </p>

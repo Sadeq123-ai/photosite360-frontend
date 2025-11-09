@@ -1,29 +1,39 @@
-﻿import { Link } from 'react-router-dom'
+﻿import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { LogOut, Camera } from 'lucide-react'
 import './Navbar.css'
 
 const Navbar = () => {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
+
+  // ✅ Obtener el nombre para mostrar (nombre > email)
+  const displayName = user?.name || user?.email || 'Usuario'
 
   return (
     <nav className="navbar">
-      <div className="navbar-container">
-        <Link to="/dashboard" className="navbar-brand">
-          <Camera size={24} />
-          <span>PhotoSite360</span>
-        </Link>
-        
-        <div className="navbar-menu">
-          <Link to="/dashboard" className="navbar-link">Dashboard</Link>
-          <Link to="/projects" className="navbar-link">Proyectos</Link>
+      <div className="nav-container">
+        <div className="nav-brand">
+          <Link to="/projects">
+            <h2>🌍 PhotoSite360</h2>
+          </Link>
         </div>
 
-        <div className="navbar-user">
-          <span className="user-name">{user?.full_name}</span>
-          <button onClick={logout} className="btn-logout">
-            <LogOut size={18} />
-            Cerrar sesión
+        <div className="nav-links">
+          <Link to="/projects" className="nav-link active">
+            📁 Mis Proyectos
+          </Link>
+        </div>
+
+        <div className="nav-user">
+          {/* ✅ CAMBIAR: Mostrar nombre en lugar de email */}
+          <span className="user-name">👤 {displayName}</span>
+          <button onClick={handleLogout} className="logout-btn">
+            Cerrar Sesión
           </button>
         </div>
       </div>

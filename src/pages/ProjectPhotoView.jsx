@@ -90,16 +90,9 @@ const ProjectPhotoView = () => {
         <div className="breadcrumb">
           <button 
             className="btn-back"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/projects')}  // ✅ CORREGIDO: Dashboard → Proyectos
           >
             <Home size={18} />
-            Dashboard
-          </button>
-          <span className="separator">/</span>
-          <button 
-            className="btn-back"
-            onClick={() => navigate('/projects')}
-          >
             Proyectos
           </button>
           <span className="separator">/</span>

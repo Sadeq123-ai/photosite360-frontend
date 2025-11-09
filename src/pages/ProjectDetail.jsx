@@ -2,6 +2,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import CameraMap3D from '../components/CameraMap3D'
+import EnhancedMapView from '../components/EnhancedMapView'
 import api from '../config/axios'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Upload, Image as ImageIcon, Eye, Maximize2, Link2, Download, Trash2 } from 'lucide-react'
@@ -15,6 +16,7 @@ const ProjectDetail = () => {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [show3DMapFullscreen, setShow3DMapFullscreen] = useState(false)
+  const [showEnhancedMap, setShowEnhancedMap] = useState(false)
 
   useEffect(() => {
     fetchProject()
@@ -139,40 +141,68 @@ const ProjectDetail = () => {
   }
 
   const exportToCSV = () => {
-  const photosWithCoords = photos.filter(p => p.latitude && p.longitude)
-  if (photosWithCoords.length === 0) {
-    toast.error('No hay fotos con coordenadas para exportar')
-    return
-  }
-  
-  let csv = 'Nombre de Imagen;X;Y;Z;URL Imagen\n'
-  
-  photosWithCoords.forEach(photo => {
-    // BACKEND MULTIPLICA ×1000, NOSOTROS DIVIDIMOS ÷10
-    const x = (parseFloat(photo.latitude) / 100000) || 0      // ÷100000
-    const y = (parseFloat(photo.longitude) / 100000) || 0     // ÷100000
-    
-    let z = 0
-    const zMatch = photo.description?.match(/z:\s*([-\d.,]+)/i)
-    if (zMatch) {
-      z = (parseFloat(zMatch[1]) / 100000) || 0               // ÷100000
+    const photosWithCoords = photos.filter(p => p.latitude && p.longitude)
+    if (photosWithCoords.length === 0) {
+      toast.error('No hay fotos con coordenadas para exportar')
+      return
     }
     
-    const url = `https://photosite360-frontend.onrender.com/projects/${id}/view/${photo.id}`
-    csv += `"${photo.title}";${x};${y};${z};"${url}"\n`
-  })
-  
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  const downloadUrl = URL.createObjectURL(blob)
-  link.setAttribute('href', downloadUrl)
-  link.setAttribute('download', `${project.name}_Coordenadas.csv`)
-  link.style.visibility = 'hidden'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  toast.success('Archivo CSV exportado')
-}
+    let csv = 'Nombre de Imagen;X;Y;Z;URL Imagen\n'
+    
+    photosWithCoords.forEach(photo => {
+      const x = (parseFloat(photo.latitude) / 100000) || 0
+      const y = (parseFloat(photo.longitude) / 100000) || 0
+      
+      let z = 0
+      const zMatch = photo.description?.match(/z:\s*([-\d.,]+)/i)
+      if (zMatch) {
+        z = (parseFloat(zMatch[1]) / 100000) || 0
+      }
+      
+      const url = `https://photosite360-frontend.onrender.com/projects/${id}/view/${photo.id}`
+      csv += `"${photo.title}";${x};${y};${z};"${url}"\n`
+    })
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const downloadUrl = URL.createObjectURL(blob)
+    link.setAttribute('href', downloadUrl)
+    link.setAttribute('download', `${project.name}_Coordenadas.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    toast.success('Archivo CSV exportado')
+  }
+
+  const handlePhotoCapture = async (photoData) => {
+    try {
+      // Crear form data para subir la foto
+      const formData = new FormData()
+      formData.append('title', photoData.title)
+      formData.append('tags', photoData.tags.join(','))
+      formData.append('comment', photoData.comment)
+      formData.append('latitude', photoData.coordinates.x.toString())
+      formData.append('longitude', photoData.coordinates.y.toString())
+      
+      // Aquí necesitarías capturar una foto real o usar una existente
+      // Por ahora simulamos la subida
+      const response = await api.post(`/projects/${id}/photos/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      
+      toast.success(`Foto "${photoData.title}" registrada en el mapa`)
+      
+      // Actualizar la lista de fotos
+      await fetchPhotos()
+      
+    } catch (error) {
+      console.error('Error capturando foto:', error)
+      toast.error('Error al registrar la foto en el mapa')
+    }
+  }
 
   const photosWithCoords = photos.filter(p => p.latitude && p.longitude)
 
@@ -204,10 +234,18 @@ const ProjectDetail = () => {
 
           <div className="project-actions">
             {photosWithCoords.length > 0 && (
-              <button className="btn btn-secondary" onClick={exportToCSV}>
-                <Download size={20} />
-                Exportar CSV
-              </button>
+              <>
+                <button className="btn btn-secondary" onClick={exportToCSV}>
+                  <Download size={20} />
+                  Exportar CSV
+                </button>
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={() => setShowEnhancedMap(true)}
+                >
+                  🗺️ Mapa Avanzado
+                </button>
+              </>
             )}
             
             <label className="btn btn-primary upload-btn">
@@ -322,6 +360,15 @@ const ProjectDetail = () => {
           photos={photos}
           onPhotoClick={handlePhotoClick}
           onClose={() => setShow3DMapFullscreen(false)}
+        />
+      )}
+
+      {showEnhancedMap && (
+        <EnhancedMapView
+          photos={photos}
+          project={project}
+          onClose={() => setShowEnhancedMap(false)}
+          onPhotoCapture={handlePhotoCapture}
         />
       )}
     </div>

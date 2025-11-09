@@ -2,7 +2,6 @@
 import { useAuth } from './context/AuthContext'
 import Login from './pages/Login'
 import Register from './pages/Register'
-import Dashboard from './pages/Dashboard'
 import Projects from './pages/Projects'
 import ProjectDetail from './pages/ProjectDetail'
 import PublicPhotoView from './pages/PublicPhotoView'
@@ -39,12 +38,6 @@ function App() {
       <Route path="/register" element={<Register />} />
       
       {/* 🔒 RUTAS PROTEGIDAS - REQUIEREN AUTENTICACIÓN */}
-      <Route path="/dashboard" element={
-        <ProtectedRoute>
-          <Dashboard />
-        </ProtectedRoute>
-      } />
-      
       <Route path="/projects" element={
         <ProtectedRoute>
           <Projects />
@@ -63,8 +56,12 @@ function App() {
         </ProtectedRoute>
       } />
       
-      {/* 🏠 RUTA RAÍZ - Redirige al dashboard SOLO para la raíz */}
-      <Route path="/" element={<Dashboard />} />
+      {/* 🏠 RUTA RAÍZ - Redirige a proyectos SOLO para la raíz */}
+      <Route path="/" element={
+        <ProtectedRoute>
+          <Projects />
+        </ProtectedRoute>
+      } />
       
       {/* ❌ PARA CUALQUIER OTRA RUTA NO ENCONTRADA */}
       <Route path="*" element={
@@ -82,7 +79,7 @@ function App() {
           <h1 style={{ fontSize: '3rem', marginBottom: '20px' }}>404</h1>
           <p style={{ fontSize: '1.2rem', marginBottom: '30px' }}>Página no encontrada</p>
           <button 
-            onClick={() => window.location.href = '/'}
+            onClick={() => window.location.href = '/projects'}
             style={{
               background: '#3b82f6',
               color: 'white',
@@ -93,7 +90,7 @@ function App() {
               fontSize: '16px'
             }}
           >
-            Volver al Inicio
+            Ver Mis Proyectos
           </button>
         </div>
       } />
