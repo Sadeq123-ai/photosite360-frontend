@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './MobileCaptureModal.css';
 
 const MobileCaptureModal = ({ position, onSave, onClose }) => {
@@ -7,13 +7,62 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
     const [room, setRoom] = useState('');
     const [pk, setPk] = useState('');
     const [comment, setComment] = useState('');
+    const [availableLevels, setAvailableLevels] = useState([]);
+    const [availableRooms, setAvailableRooms] = useState([]);
+
+    // ✅ CARGAR ETIQUETAS EXISTENTES
+    useEffect(() => {
+        loadAvailableTags();
+    }, []);
+
+    const loadAvailableTags = () => {
+        try {
+            // Cargar etiquetas del localStorage (mismo sistema que TagManager)
+            const savedTags = JSON.parse(localStorage.getItem(`project_tags`) || '[]');
+            const predefinedTags = [
+                { id: 'p00', name: 'P00', category: 'Planta' },
+                { id: 'p01', name: 'P01', category: 'Planta' },
+                { id: 'p02', name: 'P02', category: 'Planta' },
+                { id: 'p03', name: 'P03', category: 'Planta' },
+                { id: 'p04', name: 'P04', category: 'Planta' },
+                { id: 's01', name: 'S01', category: 'Sección' },
+                { id: 's02', name: 'S02', category: 'Sección' },
+                { id: 's03', name: 'S03', category: 'Sección' },
+                { id: 'salon', name: 'Salon', category: 'Espacio' },
+                { id: 'cocina', name: 'Cocina', category: 'Espacio' },
+                { id: 'baño', name: 'Baño', category: 'Espacio' },
+                { id: 'dormitorio', name: 'Dormitorio', category: 'Espacio' },
+                { id: 'oficina', name: 'Oficina', category: 'Espacio' },
+                { id: 'terraza', name: 'Terraza', category: 'Espacio' },
+                { id: 'garaje', name: 'Garaje', category: 'Espacio' },
+                { id: 'fachada', name: 'Fachada', category: 'Exterior' },
+                { id: 'jardin', name: 'Jardin', category: 'Exterior' },
+                { id: 'piscina', name: 'Piscina', category: 'Exterior' },
+            ];
+            
+            const allTags = [...predefinedTags, ...savedTags];
+            
+            // Separar por categorías
+            const levels = allTags.filter(tag => tag.category === 'Planta').map(tag => tag.name);
+            const rooms = allTags.filter(tag => tag.category === 'Espacio' || tag.category === 'Exterior').map(tag => tag.name);
+            
+            setAvailableLevels(['', ...levels]);
+            setAvailableRooms(['', ...rooms]);
+            
+        } catch (error) {
+            console.error('Error cargando etiquetas:', error);
+            // Valores por defecto
+            setAvailableLevels(['', 'P00', 'P01', 'P02', 'P03', 'P04', 'S01', 'S02', 'S03']);
+            setAvailableRooms(['', 'Salon', 'Cocina', 'Baño', 'Dormitorio', 'Oficina', 'Terraza', 'Garaje', 'Fachada', 'Jardin', 'Piscina']);
+        }
+    };
 
     // Abrir cámara nativa del móvil
     const openNativeCamera = () => {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
-        input.capture = 'environment'; // Cámara trasera
+        input.capture = 'environment';
         input.style.display = 'none';
         
         input.onchange = (e) => {
@@ -52,12 +101,13 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
             return;
         }
 
-        // Subir imagen
+        // Subir imagen a Cloudinary
         const cloudinaryResult = await uploadToCloudinary(capturedImage);
         
         if (cloudinaryResult) {
-            // Guardar en base de datos
+            // Preparar datos para guardar
             const imageData = {
+                file: capturedImage, // ✅ Imagen real para subir al backend
                 url: cloudinaryResult.secure_url,
                 latitude: position.lat,
                 longitude: position.lng,
@@ -67,13 +117,13 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
                 comment: comment,
                 filename: capturedImage.name,
                 uploaded_at: new Date().toISOString(),
-                title: `Foto ${new Date().toLocaleString()}`,
-                tags: [level, room].filter(Boolean).join(', ')
+                title: `Imagen ${new Date().toLocaleString()}`,
+                tags: [level, room, pk].filter(Boolean).join(', '),
+                type: 'normal'
             };
 
-            // Llamar función padre para guardar
+            // Llamar función padre para guardar en backend
             onSave(imageData);
-            onClose();
         }
     };
 
@@ -109,7 +159,7 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
                     </div>
                 )}
 
-                {/* Formulario de etiquetas */}
+                {/* Formulario de etiquetas MEJORADO */}
                 <div className="tagging-form">
                     <div className="form-group">
                         <label>🏗️ Nivel</label>
@@ -118,11 +168,11 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
                             onChange={(e) => setLevel(e.target.value)}
                             className="touch-select"
                         >
-                            <option value="">Seleccionar nivel</option>
-                            <option value="P00">P00 - Planta Baja</option>
-                            <option value="P01">P01 - Primera Planta</option>
-                            <option value="P02">P02 - Segunda Planta</option>
-                            <option value="S01">S01 - Sótano 1</option>
+                            {availableLevels.map((lvl, index) => (
+                                <option key={index} value={lvl}>
+                                    {lvl || 'Seleccionar nivel'}
+                                </option>
+                            ))}
                         </select>
                     </div>
 
@@ -133,14 +183,11 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
                             onChange={(e) => setRoom(e.target.value)}
                             className="touch-select"
                         >
-                            <option value="">Seleccionar zona</option>
-                            <option value="Salón">Salón</option>
-                            <option value="Cocina">Cocina</option>
-                            <option value="Baño">Baño</option>
-                            <option value="Dormitorio">Dormitorio</option>
-                            <option value="Oficina">Oficina</option>
-                            <option value="Garaje">Garaje</option>
-                            <option value="Exterior">Exterior</option>
+                            {availableRooms.map((rm, index) => (
+                                <option key={index} value={rm}>
+                                    {rm || 'Seleccionar zona'}
+                                </option>
+                            ))}
                         </select>
                     </div>
 
@@ -164,6 +211,13 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
                             rows="3"
                         />
                     </div>
+                </div>
+
+                {/* Información de ubicación */}
+                <div className="location-info">
+                    <h4>📍 Ubicación Seleccionada</h4>
+                    <p>Lat: {position?.lat.toFixed(6)}</p>
+                    <p>Lng: {position?.lng.toFixed(6)}</p>
                 </div>
 
                 {/* Botones de acción */}

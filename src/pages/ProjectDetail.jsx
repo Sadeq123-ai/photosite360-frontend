@@ -5,7 +5,7 @@ import CameraMap3D from '../components/CameraMap3D'
 import EnhancedMapView from '../components/EnhancedMapView'
 import api from '../config/axios'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Upload, Image as ImageIcon, Eye, Maximize2, Link2, Download, Trash2 } from 'lucide-react'
+import { ArrowLeft, Upload, Image as ImageIcon, Eye, Maximize2, Link2, Download, Trash2, MapPin } from 'lucide-react'
 import './ProjectDetail.css'
 
 const ProjectDetail = () => {
@@ -13,6 +13,7 @@ const ProjectDetail = () => {
   const navigate = useNavigate()
   const [project, setProject] = useState(null)
   const [photos, setPhotos] = useState([])
+  const [normalImages, setNormalImages] = useState([]) // ✅ NUEVO: Imágenes normales
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [show3DMapFullscreen, setShow3DMapFullscreen] = useState(false)
@@ -21,6 +22,7 @@ const ProjectDetail = () => {
   useEffect(() => {
     fetchProject()
     fetchPhotos()
+    fetchNormalImages() // ✅ NUEVO: Cargar imágenes normales
   }, [id])
 
   const fetchProject = async () => {
@@ -45,7 +47,18 @@ const ProjectDetail = () => {
     }
   }
 
-  const handleFileUpload = async (e) => {
+  // ✅ NUEVA FUNCIÓN: Cargar imágenes normales
+  const fetchNormalImages = async () => {
+    try {
+      const response = await api.get(`/projects/${id}/gallery`)
+      setNormalImages(response.data)
+    } catch (error) {
+      console.error('Error fetching normal images:', error)
+    }
+  }
+
+  // ✅ FUNCIÓN MEJORADA: Solo para fotos 360° + TXT
+  const handle360Upload = async (e) => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
@@ -81,7 +94,7 @@ const ProjectDetail = () => {
           },
         })
         
-        toast.success(`Foto "${file.name}" subida`)
+        toast.success(`Foto 360° "${file.name}" subida`)
         
         uploadedPhotos.push({
           id: response.data.id,
@@ -117,12 +130,44 @@ const ProjectDetail = () => {
     await fetchPhotos()
   }
 
+  // ✅ NUEVA FUNCIÓN: Subir imágenes normales
+  const handleNormalImageUpload = async (e) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    setUploading(true)
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('title', file.name)
+        formData.append('type', 'normal') // ✅ Marcar como imagen normal
+
+        const response = await api.post(`/projects/${id}/photos/upload`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        })
+        
+        toast.success(`Imagen normal "${file.name}" subida`)
+      }
+    } catch (error) {
+      console.error('Error uploading normal image:', error)
+      toast.error('Error al subir imágenes normales')
+    }
+
+    setUploading(false)
+    await fetchNormalImages() // ✅ Actualizar lista de imágenes normales
+  }
+
   const handlePhotoClick = (photo) => {
     navigate(`/projects/${id}/view/${photo.id}`)
   }
 
   const handleDeletePhoto = async (photoId, photoTitle) => {
-    if (!confirm(`Estas seguro de eliminar "${photoTitle}"?`)) return
+    if (!confirm(`¿Estás seguro de eliminar "${photoTitle}"?`)) return
 
     try {
       await api.delete(`/projects/${id}/photos/${photoId}`)
@@ -137,7 +182,7 @@ const ProjectDetail = () => {
   const copyPhotoURL = (photo) => {
     const url = `https://photosite360-frontend.onrender.com/projects/${id}/view/${photo.id}`
     navigator.clipboard.writeText(url)
-    toast.success('URL publica copiada al portapapeles')
+    toast.success('URL pública copiada al portapapeles')
   }
 
   const exportToCSV = () => {
@@ -175,33 +220,46 @@ const ProjectDetail = () => {
     toast.success('Archivo CSV exportado')
   }
 
+  // ✅ FUNCIÓN MEJORADA: Captura móvil REAL con Cloudinary
   const handlePhotoCapture = async (photoData) => {
     try {
-      // Crear form data para subir la foto
+      console.log('📸 Iniciando captura móvil real:', photoData)
+
+      // Subir imagen a Cloudinary usando el mismo endpoint que ImageUploader
       const formData = new FormData()
+      formData.append('file', photoData.file) // ✅ Imagen real desde móvil
       formData.append('title', photoData.title)
-      formData.append('tags', photoData.tags.join(','))
-      formData.append('comment', photoData.comment)
+      formData.append('type', 'normal')
+      formData.append('level', photoData.level || '')
+      formData.append('room', photoData.room || '')
+      formData.append('pk', photoData.pk || '')
+      formData.append('comment', photoData.comment || '')
       formData.append('latitude', photoData.coordinates.x.toString())
       formData.append('longitude', photoData.coordinates.y.toString())
-      
-      // Aquí necesitarías capturar una foto real o usar una existente
-      // Por ahora simulamos la subida
+
       const response = await api.post(`/projects/${id}/photos/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       })
+
+      toast.success(`✅ Imagen "${photoData.title}" capturada y guardada en la nube`)
       
-      toast.success(`Foto "${photoData.title}" registrada en el mapa`)
-      
-      // Actualizar la lista de fotos
+      // Actualizar todas las listas
       await fetchPhotos()
+      await fetchNormalImages()
       
     } catch (error) {
-      console.error('Error capturando foto:', error)
-      toast.error('Error al registrar la foto en el mapa')
+      console.error('❌ Error en captura móvil:', error)
+      toast.error('Error al guardar la imagen capturada')
     }
+  }
+
+  // ✅ COMBINAR TODAS LAS FOTOS PARA EL MAPA
+  const getAllPhotosForMap = () => {
+    const photos360 = photos.map(photo => ({ ...photo, type: '360' }))
+    const normalPhotos = normalImages.map(img => ({ ...img, type: 'normal' }))
+    return [...photos360, ...normalPhotos]
   }
 
   const photosWithCoords = photos.filter(p => p.latitude && p.longitude)
@@ -233,50 +291,81 @@ const ProjectDetail = () => {
           </div>
 
           <div className="project-actions">
-  {photosWithCoords.length > 0 && (
-    <>
-      <button className="btn btn-secondary" onClick={exportToCSV}>
-        <Download size={20} />
-        Exportar CSV
-      </button>
-      <button 
-        className="btn btn-secondary" 
-        onClick={() => setShowEnhancedMap(true)}
-      >
-        🗺️ Mapa Avanzado
-      </button>
-    </>
-  )}
-  
-  {/* ✅ BOTÓN 1: Imágenes 360° (renombrado) */}
-  <label className="btn btn-primary upload-btn">
-    <Upload size={20} />
-    {uploading ? 'Subiendo...' : 'Importar Imágenes 360° + TXT'}
-    <input
-      type="file"
-      multiple
-      accept="image/*,.txt"
-      onChange={handleFileUpload}
-      disabled={uploading}
-      style={{ display: 'none' }}
-    />
-  </label>
+            {photosWithCoords.length > 0 && (
+              <>
+                <button className="btn btn-secondary" onClick={exportToCSV}>
+                  <Download size={20} />
+                  Exportar CSV
+                </button>
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={() => setShowEnhancedMap(true)}
+                >
+                  <MapPin size={20} />
+                  Mapa Avanzado
+                </button>
+              </>
+            )}
+            
+            {/* ✅ BOTÓN 1: Solo fotos 360° + TXT */}
+            <label className="btn btn-primary upload-btn">
+              <Upload size={20} />
+              {uploading ? 'Subiendo...' : '🎥 Subir Fotos 360° + TXT'}
+              <input
+                type="file"
+                multiple
+                accept="image/*,.txt"
+                onChange={handle360Upload}
+                disabled={uploading}
+                style={{ display: 'none' }}
+              />
+            </label>
 
-  {/* ✅ BOTÓN 2: Imágenes normales (NUEVO) */}
-  <button 
-    className="btn btn-success"
-    onClick={() => navigate(`/projects/${id}/gallery`)}
-  >
-    <ImageIcon size={20} />
-    Importar Imágenes
-  </button>
-</div>
+            {/* ✅ BOTÓN 2: Solo imágenes normales */}
+            <label className="btn btn-success upload-btn">
+              <ImageIcon size={20} />
+              {uploading ? 'Subiendo...' : '🖼️ Subir Imágenes Normales'}
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleNormalImageUpload}
+                disabled={uploading}
+                style={{ display: 'none' }}
+              />
+            </label>
+
+            {/* ✅ BOTÓN 3: Galería de imágenes normales */}
+            <button 
+              className="btn btn-info"
+              onClick={() => navigate(`/projects/${id}/gallery`)}
+            >
+              <Eye size={20} />
+              Ver Galería Imágenes
+            </button>
+          </div>
+        </div>
+
+        {/* ✅ ESTADÍSTICAS MEJORADAS */}
+        <div className="project-stats">
+          <div className="stat-card">
+            <div className="stat-number">{photos.length}</div>
+            <div className="stat-label">Fotos 360°</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">{normalImages.length}</div>
+            <div className="stat-label">Imágenes Normales</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">{photosWithCoords.length}</div>
+            <div className="stat-label">Con Coordenadas</div>
+          </div>
         </div>
 
         {photosWithCoords.length > 0 && (
           <div className="viewer-3d-section">
             <div className="viewer-3d-header">
-              <h2>Vista 3D - Navegacion por Coordenadas</h2>
+              <h2>Vista 3D - Navegación por Coordenadas</h2>
               <button 
                 className="btn-expand"
                 onClick={() => setShow3DMapFullscreen(true)}
@@ -297,7 +386,7 @@ const ProjectDetail = () => {
         )}
 
         <div className="photos-section">
-          <h2>Fotos 360&#176; del Proyecto ({photos.length})</h2>
+          <h2>Fotos 360° del Proyecto ({photos.length})</h2>
           
           {photos.length > 0 ? (
             <div className="photos-grid">
@@ -322,7 +411,7 @@ const ProjectDetail = () => {
                     />
                     <div className="photo-overlay">
                       <Eye size={32} />
-                      <span>Ver en 360&#176;</span>
+                      <span>Ver en 360°</span>
                     </div>
                   </div>
                   <div className="photo-info">
@@ -335,7 +424,7 @@ const ProjectDetail = () => {
                     <button 
                       className="btn-copy-url"
                       onClick={() => copyPhotoURL(photo)}
-                      title="Copiar URL publica"
+                      title="Copiar URL pública"
                     >
                       <Link2 size={16} />
                       Copiar URL
@@ -347,16 +436,16 @@ const ProjectDetail = () => {
           ) : (
             <div className="empty-photos">
               <ImageIcon size={64} color="#cbd5e0" />
-              <h3>No hay fotos aun</h3>
-              <p>Sube la primera foto de este proyecto</p>
+              <h3>No hay fotos 360° aún</h3>
+              <p>Sube la primera foto 360° de este proyecto</p>
               <label className="btn btn-primary">
                 <Upload size={20} />
-                Subir Primera Foto
+                Subir Primera Foto 360°
                 <input
                   type="file"
                   multiple
                   accept="image/*,.txt"
-                  onChange={handleFileUpload}
+                  onChange={handle360Upload}
                   style={{ display: 'none' }}
                 />
               </label>
@@ -375,10 +464,10 @@ const ProjectDetail = () => {
 
       {showEnhancedMap && (
         <EnhancedMapView
-          photos={photos}
+          photos={getAllPhotosForMap()} // ✅ Pasar todas las fotos al mapa
           project={project}
           onClose={() => setShowEnhancedMap(false)}
-          onPhotoCapture={handlePhotoCapture}
+          onPhotoCapture={handlePhotoCapture} // ✅ Función real
         />
       )}
     </div>
