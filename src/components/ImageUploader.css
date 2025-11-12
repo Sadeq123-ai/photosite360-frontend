@@ -1,0 +1,250 @@
+.image-uploader {
+  width: 100%;
+}
+
+.upload-zone {
+  border: 2px dashed #4b5563;
+  border-radius: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  transition: all 0.3s ease;
+  background: #1f2937;
+  cursor: pointer;
+}
+
+.upload-zone:hover {
+  border-color: #3b82f6;
+  background: #374151;
+}
+
+.upload-zone.drag-active {
+  border-color: #10b981;
+  background: #064e3b;
+  border-style: solid;
+}
+
+.upload-zone.uploading {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.upload-content {
+  pointer-events: none;
+}
+
+.upload-zone:not(.uploading) .upload-content {
+  pointer-events: auto;
+}
+
+.upload-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.upload-zone h3 {
+  margin: 0 0 8px 0;
+  color: white;
+  font-size: 1.5rem;
+}
+
+.upload-zone p {
+  margin: 0 0 16px 0;
+  color: #9ca3af;
+}
+
+.upload-formats {
+  font-size: 0.9rem;
+  color: #6b7280 !important;
+}
+
+.file-input-label {
+  display: inline-block;
+}
+
+.file-input-label input {
+  display: none;
+}
+
+.file-input-button {
+  display: inline-block;
+  background: #3b82f6;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.file-input-button:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+}
+
+.file-input-button:active {
+  transform: translateY(0);
+}
+
+/* Progreso de subida */
+.upload-progress {
+  margin-top: 30px;
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+}
+
+.upload-progress h4 {
+  margin: 0 0 16px 0;
+  color: white;
+  font-size: 1.1rem;
+}
+
+.progress-item {
+  margin-bottom: 12px;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.filename {
+  color: #e5e7eb;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.progress-percent {
+  color: #3b82f6;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #374151;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Imágenes subidas recientemente */
+.recent-uploads {
+  margin-top: 30px;
+}
+
+.recent-uploads h4 {
+  margin: 0 0 16px 0;
+  color: #10b981;
+  font-size: 1.1rem;
+}
+
+.uploaded-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.uploaded-item {
+  background: #1e293b;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #334155;
+  transition: transform 0.2s ease;
+}
+
+.uploaded-item:hover {
+  transform: translateY(-4px);
+}
+
+.uploaded-item img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+}
+
+.uploaded-info {
+  padding: 12px;
+}
+
+.uploaded-info .filename {
+  display: block;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.uploaded-info .url {
+  display: block;
+  color: #6b7280;
+  font-size: 0.7rem;
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Nota de simulación */
+.upload-note {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin: 12px 0 !important;
+  border: 1px solid #f59e0b;
+}
+
+.upload-note strong {
+  color: #92400e;
+}
+
+/* Tamaño de archivo */
+.file-size {
+  display: block;
+  color: #9ca3af;
+  font-size: 0.7rem;
+  margin-top: 2px;
+}
+/* Nota de éxito */
+.upload-note.success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
+/* Estado del progreso */
+.progress-status {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* Badge de cloudinary */
+.cloud-badge {
+  display: block;
+  background: #3b82f6;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  margin-top: 4px;
+  text-align: center;
+}
