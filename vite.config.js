@@ -3,32 +3,86 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  
   build: {
-    // Configuración crítica para UTF-8
+    // ✅ TU CONFIGURACIÓN UTF-8 (MANTENIDA)
     charset: 'utf8',
-    minify: 'esbuild',
     target: 'esnext',
-    // Forzar UTF-8 en todo el build
+    
+    // ✅ OPTIMIZACIÓN: Cambiar a terser para mejor compresión
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Eliminar console.log en producción
+        drop_debugger: true
+      }
+    },
+    
+    // ✅ OPTIMIZACIÓN: Tamaño de chunk warning
+    chunkSizeWarningLimit: 1000,
+    
+    // ✅ TU CONFIGURACIÓN UTF-8 esbuild (MANTENIDA)
     esbuild: {
       charset: 'utf8'
     },
-    // Configuración adicional para caracteres
+    
+    // ✅ TU CONFIGURACIÓN + OPTIMIZACIONES (COMBINADAS)
     rollupOptions: {
       output: {
+        // Tu configuración de nombres (MANTENIDA)
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]'
+        assetFileNames: 'assets/[name]-[hash].[ext]',
+        
+        // ✅ OPTIMIZACIÓN AÑADIDA: Code Splitting
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-map': ['leaflet'],
+          'vendor-ui': ['lucide-react', 'react-hot-toast'],
+          'vendor-utils': ['axios']
+        }
       }
-    }
+    },
+    
+    // ✅ OPTIMIZACIÓN: Source maps solo en desarrollo
+    sourcemap: false
   },
-  // Configurar servidor de desarrollo
+  
+  // ✅ TU CONFIGURACIÓN (MANTENIDA)
   server: {
     fs: {
       strict: false
-    }
+    },
+    // ✅ OPTIMIZACIÓN AÑADIDA
+    port: 5173,
+    strictPort: false,
+    host: true,
+    open: false
   },
-  // Configuración global de encoding
+  
+  // ✅ OPTIMIZACIÓN AÑADIDA: Preview config
+  preview: {
+    port: 4173,
+    strictPort: false,
+    host: true,
+    open: false
+  },
+  
+  // ✅ TU CONFIGURACIÓN (MANTENIDA)
   define: {
     'process.env': {}
+  },
+  
+  // ✅ OPTIMIZACIÓN AÑADIDA: Dependency pre-bundling
+  optimizeDeps: {
+    include: [
+      'react', 
+      'react-dom', 
+      'react-router-dom',
+      'leaflet',
+      'axios',
+      'react-hot-toast',
+      'lucide-react'
+    ]
   }
 })

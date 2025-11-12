@@ -1,8 +1,9 @@
-﻿import { Link, useNavigate } from 'react-router-dom'
+﻿import { memo } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import './Navbar.css'
 
-const Navbar = () => {
+const Navbar = memo(() => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
@@ -39,6 +40,8 @@ const Navbar = () => {
       </div>
     </nav>
   )
-}
+})
+
+Navbar.displayName = 'Navbar'
 
 export default Navbar

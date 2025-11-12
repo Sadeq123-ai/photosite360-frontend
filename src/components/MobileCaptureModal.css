@@ -1,0 +1,198 @@
+/* Modal Overlay */
+.mobile-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    padding: 10px;
+}
+
+/* Modal Content */
+.mobile-modal-content {
+    background: white;
+    border-radius: 15px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Header */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f8f9fa;
+    border-radius: 15px 15px 0 0;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 18px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 5px;
+    color: #666;
+}
+
+/* Sección Cámara */
+.camera-section {
+    padding: 30px 20px;
+    text-align: center;
+}
+
+.camera-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 15px 25px;
+    border-radius: 25px;
+    font-size: 18px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    width: 100%;
+    max-width: 250px;
+}
+
+.camera-btn:hover {
+    background: #0056b3;
+}
+
+.help-text {
+    color: #666;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* Preview Imagen */
+.image-preview {
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.image-preview img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.image-size {
+    color: #28a745;
+    font-size: 14px;
+    margin: 10px 0 0 0;
+}
+
+/* Formulario */
+.tagging-form {
+    padding: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.touch-select, .touch-input, textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 16px;
+    background: white;
+    box-sizing: border-box;
+}
+
+.touch-select:focus, .touch-input:focus, textarea:focus {
+    border-color: #007bff;
+    outline: none;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 80px;
+    font-family: inherit;
+}
+
+/* Botones de Acción */
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    padding: 20px;
+    border-top: 1px solid #e0e0e0;
+    background: #f8f9fa;
+    border-radius: 0 0 15px 15px;
+}
+
+.btn-cancel, .btn-save {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-cancel {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-cancel:hover {
+    background: #545b62;
+}
+
+.btn-save {
+    background: #28a745;
+    color: white;
+}
+
+.btn-save:hover:not(:disabled) {
+    background: #218838;
+}
+
+.btn-save:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .mobile-modal-content {
+        margin: 5px;
+        max-height: 95vh;
+    }
+    
+    .modal-header h3 {
+        font-size: 16px;
+    }
+    
+    .camera-btn {
+        font-size: 16px;
+        padding: 12px 20px;
+    }
+}

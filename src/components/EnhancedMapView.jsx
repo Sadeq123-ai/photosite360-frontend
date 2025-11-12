@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './EnhancedMapView.css';
+import MobileCaptureModal from './MobileCaptureModal';
 
 // Fix para iconos de Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -15,6 +16,8 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markersRef = useRef([]);
+  
+  // Estados principales
   const [userLocation, setUserLocation] = useState(null);
   const [activeBaseLayer, setActiveBaseLayer] = useState('satellite');
   const [mapMode, setMapMode] = useState('view');
@@ -26,6 +29,12 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
     const saved = localStorage.getItem(`project_rotation_${project?.id}`);
     return saved ? parseFloat(saved) : 0;
   });
+  
+  // Estados para captura móvil
+  const [showMobileCapture, setShowMobileCapture] = useState(false);
+  const [mobileCapturePosition, setMobileCapturePosition] = useState(null);
+  
+  // Estados para captura desktop existente
   const [showPhotoForm, setShowPhotoForm] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [photoForm, setPhotoForm] = useState({
@@ -33,6 +42,8 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
     tags: '',
     comment: ''
   });
+  
+  // Estados para rotación
   const [rotationAngle, setRotationAngle] = useState('');
   const [isRotating, setIsRotating] = useState(false);
   const [tempRotation, setTempRotation] = useState(0);
@@ -40,41 +51,13 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
   // Referencias para las capas base
   const baseLayersRef = useRef({});
 
-  useEffect(() => {
-    if (!mapInstance.current && mapRef.current) {
-      const initialCenter = projectOrigin || [40.4168, -3.7038];
-      mapInstance.current = L.map(mapRef.current, {
-        zoomControl: true,
-        maxZoom: 22,
-        minZoom: 1,
-        zoomSnap: 0.1,
-        zoomDelta: 0.5
-      }).setView(initialCenter, projectOrigin ? 18 : 6);
-      
-      // Inicializar todas las capas base
-      initializeBaseLayers();
-      
-      // Activar la capa satélite por defecto
-      if (baseLayersRef.current.satellite) {
-        baseLayersRef.current.satellite.addTo(mapInstance.current);
-      }
-      
-      mapInstance.current.on('click', handleMapClick);
-    }
+  // Detectar si es dispositivo móvil
+  const isMobileDevice = useCallback(() => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }, []);
 
-    updateMarkers();
-
-    return () => {
-      if (mapInstance.current) {
-        mapInstance.current.off('click', handleMapClick);
-        mapInstance.current.remove();
-        mapInstance.current = null;
-      }
-    };
-  }, [photos, project, mapMode, projectOrigin, projectRotation, isRotating, tempRotation]);
-
-  // Inicializar todas las capas base
-  const initializeBaseLayers = () => {
+  // ✅ OPTIMIZACIÓN: Inicializar capas base
+  const initializeBaseLayers = useCallback(() => {
     if (!mapInstance.current) return;
 
     // Capa Satélite (Esri)
@@ -86,7 +69,7 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
       }
     );
 
-    // Capa OSM (OpenStreetMap) - URL CORREGIDA
+    // Capa OSM (OpenStreetMap)
     baseLayersRef.current.osm = L.tileLayer(
       'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
@@ -104,14 +87,11 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
         subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
       }
     );
-  };
+  }, []);
 
-  // Cambiar capa base - FUNCIÓN CORREGIDA
-  const changeBaseLayer = (layerKey) => {
-    if (!mapInstance.current || !baseLayersRef.current[layerKey]) {
-      console.error('Map instance or layer not available:', layerKey);
-      return;
-    }
+  // ✅ OPTIMIZACIÓN: Cambiar capa base
+  const changeBaseLayer = useCallback((layerKey) => {
+    if (!mapInstance.current || !baseLayersRef.current[layerKey]) return;
 
     // Remover todas las capas base actuales
     Object.values(baseLayersRef.current).forEach(layer => {
@@ -124,23 +104,129 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
     try {
       baseLayersRef.current[layerKey].addTo(mapInstance.current);
       setActiveBaseLayer(layerKey);
-      console.log('Capa cambiada a:', layerKey);
     } catch (error) {
       console.error('Error añadiendo capa:', error);
     }
-  };
+  }, []);
 
-  useEffect(() => {
-    if (projectOrigin) {
-      localStorage.setItem(`project_origin_${project?.id}`, JSON.stringify(projectOrigin));
+  // ✅ OPTIMIZACIÓN: Mostrar notificaciones
+  const showNotification = useCallback((message) => {
+    const notification = document.createElement('div');
+    notification.className = 'map-notification';
+    notification.textContent = message;
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #2ecc71;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 6px;
+      z-index: 10002;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        document.body.removeChild(notification);
+      }
+    }, 3000);
+  }, []);
+
+  // ✅ FUNCIÓN MEJORADA: Manejar click en el mapa
+  const handleMapClick = useCallback((e) => {
+    const { lat, lng } = e.latlng;
+    
+    if (mapMode === 'placeOrigin') {
+      setProjectOrigin([lat, lng]);
+      setMapMode('view');
+      showNotification('✅ Origen del proyecto guardado correctamente');
+    } else if (mapMode === 'capturePhoto') {
+      // DETECCIÓN AUTOMÁTICA MÓVIL vs DESKTOP
+      if (isMobileDevice()) {
+        // MODO MÓVIL: Abrir captura con cámara
+        setMobileCapturePosition({ lat, lng });
+        setShowMobileCapture(true);
+        showNotification('📱 Modo móvil: Abriendo cámara...');
+      } else {
+        // MODO DESKTOP: Usar formulario existente
+        setSelectedLocation({ lat, lng });
+        setShowPhotoForm(true);
+        showNotification('🖥️ Modo desktop: Completa la información');
+      }
     }
-  }, [projectOrigin, project?.id]);
+  }, [mapMode, showNotification, isMobileDevice]);
 
-  useEffect(() => {
-    localStorage.setItem(`project_rotation_${project?.id}`, projectRotation.toString());
-  }, [projectRotation, project?.id]);
+  // ✅ FUNCIÓN NUEVA: Guardar captura móvil
+  const handleMobileCaptureSave = useCallback(async (imageData) => {
+    try {
+      console.log('💾 Guardando imagen móvil:', imageData);
+      
+      // Convertir coordenadas a sistema del proyecto
+      let x = 0, y = 0;
+      if (projectOrigin) {
+        const deltaLng = imageData.longitude - projectOrigin[1];
+        const deltaLat = imageData.latitude - projectOrigin[0];
+        
+        const currentRotation = isRotating ? tempRotation : projectRotation;
+        const angleRad = (currentRotation * Math.PI) / 180;
+        const cosAngle = Math.cos(angleRad);
+        const sinAngle = Math.sin(angleRad);
+        
+        x = (deltaLng * cosAngle - deltaLat * sinAngle) * 100000;
+        y = (deltaLng * sinAngle + deltaLat * cosAngle) * 100000;
+      }
 
-  const updateMarkers = () => {
+      const photoData = {
+        title: imageData.title || `Foto ${new Date().toLocaleString()}`,
+        tags: imageData.tags || '',
+        comment: imageData.comment || '',
+        coordinates: { x, y },
+        realLocation: { lat: imageData.latitude, lng: imageData.longitude },
+        url: imageData.url,
+        level: imageData.level,
+        room: imageData.room,
+        pk: imageData.pk,
+        filename: imageData.filename,
+        uploaded_at: new Date().toISOString()
+      };
+
+      if (onPhotoCapture) {
+        onPhotoCapture(photoData);
+      }
+
+      showNotification('✅ Imagen capturada y guardada en la nube');
+      setShowMobileCapture(false);
+      
+    } catch (error) {
+      console.error('❌ Error guardando imagen móvil:', error);
+      showNotification('❌ Error al guardar la imagen');
+    }
+  }, [projectOrigin, isRotating, tempRotation, projectRotation, onPhotoCapture, showNotification]);
+
+  // ✅ FUNCIÓN EXISTENTE: Convertir coordenadas
+  const convertToRealLatLng = useCallback((x, y, rotation = projectRotation) => {
+    if (!projectOrigin) {
+      return [40.4168 + (parseFloat(y) / 1000), -3.7038 + (parseFloat(x) / 1000)];
+    }
+
+    const angleRad = (-rotation * Math.PI) / 180;
+    const cosAngle = Math.cos(angleRad);
+    const sinAngle = Math.sin(angleRad);
+    
+    const rotatedX = (parseFloat(x) * cosAngle - parseFloat(y) * sinAngle) / 100000;
+    const rotatedY = (parseFloat(x) * sinAngle + parseFloat(y) * cosAngle) / 100000;
+
+    return [
+      projectOrigin[0] + rotatedY,
+      projectOrigin[1] + rotatedX
+    ];
+  }, [projectOrigin, projectRotation]);
+
+  // ✅ FUNCIÓN EXISTENTE: Actualizar marcadores
+  const updateMarkers = useCallback(() => {
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
 
@@ -248,40 +334,55 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
       const group = new L.featureGroup(markersRef.current);
       mapInstance.current.fitBounds(group.getBounds().pad(0.1));
     }
-  };
+  }, [photos, project, projectOrigin, projectRotation, isRotating, tempRotation, mapMode, convertToRealLatLng]);
 
-  const convertToRealLatLng = (x, y, rotation = projectRotation) => {
-    if (!projectOrigin) {
-      return [40.4168 + (parseFloat(y) / 1000), -3.7038 + (parseFloat(x) / 1000)];
+  // ✅ EFECTO PRINCIPAL: Inicializar mapa
+  useEffect(() => {
+    if (!mapInstance.current && mapRef.current) {
+      const initialCenter = projectOrigin || [40.4168, -3.7038];
+      mapInstance.current = L.map(mapRef.current, {
+        zoomControl: true,
+        maxZoom: 22,
+        minZoom: 1,
+        zoomSnap: 0.1,
+        zoomDelta: 0.5
+      }).setView(initialCenter, projectOrigin ? 18 : 6);
+      
+      // Inicializar todas las capas base
+      initializeBaseLayers();
+      
+      // Activar la capa satélite por defecto
+      if (baseLayersRef.current.satellite) {
+        baseLayersRef.current.satellite.addTo(mapInstance.current);
+      }
+      
+      mapInstance.current.on('click', handleMapClick);
     }
 
-    const angleRad = (-rotation * Math.PI) / 180;
-    const cosAngle = Math.cos(angleRad);
-    const sinAngle = Math.sin(angleRad);
-    
-    const rotatedX = (parseFloat(x) * cosAngle - parseFloat(y) * sinAngle) / 100000;
-    const rotatedY = (parseFloat(x) * sinAngle + parseFloat(y) * cosAngle) / 100000;
+    updateMarkers();
 
-    return [
-      projectOrigin[0] + rotatedY,
-      projectOrigin[1] + rotatedX
-    ];
-  };
+    return () => {
+      if (mapInstance.current) {
+        mapInstance.current.off('click', handleMapClick);
+        mapInstance.current.remove();
+        mapInstance.current = null;
+      }
+    };
+  }, [photos, project, mapMode, projectOrigin, projectRotation, isRotating, tempRotation, handleMapClick, initializeBaseLayers, updateMarkers]);
 
-  const handleMapClick = (e) => {
-    const { lat, lng } = e.latlng;
-    
-    if (mapMode === 'placeOrigin') {
-      setProjectOrigin([lat, lng]);
-      setMapMode('view');
-      showNotification('✅ Origen del proyecto guardado correctamente');
-    } else if (mapMode === 'capturePhoto') {
-      setSelectedLocation({ lat, lng });
-      setShowPhotoForm(true);
+  // ✅ EFECTOS PARA PERSISTENCIA
+  useEffect(() => {
+    if (projectOrigin) {
+      localStorage.setItem(`project_origin_${project?.id}`, JSON.stringify(projectOrigin));
     }
-  };
+  }, [projectOrigin, project?.id]);
 
-  const locateUser = () => {
+  useEffect(() => {
+    localStorage.setItem(`project_rotation_${project?.id}`, projectRotation.toString());
+  }, [projectRotation, project?.id]);
+
+  // ✅ FUNCIONES EXISTENTES
+  const locateUser = useCallback(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -317,18 +418,18 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
         }
       );
     }
-  };
+  }, [showNotification]);
 
   // FUNCIONES DE ROTACIÓN
-  const rotateProject = (degrees) => {
+  const rotateProject = useCallback((degrees) => {
     if (isRotating) {
       setTempRotation(prev => (prev + degrees) % 360);
     } else {
       setProjectRotation(prev => (prev + degrees) % 360);
     }
-  };
+  }, [isRotating]);
 
-  const applyRotation = () => {
+  const applyRotation = useCallback(() => {
     const angle = parseFloat(rotationAngle);
     if (!isNaN(angle)) {
       if (isRotating) {
@@ -339,44 +440,45 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
       setRotationAngle('');
       showNotification(`🔄 Rotación aplicada: ${angle}°`);
     }
-  };
+  }, [rotationAngle, isRotating, showNotification]);
 
-  const startRotation = () => {
+  const startRotation = useCallback(() => {
     setIsRotating(true);
     setTempRotation(projectRotation);
     setMapMode('rotateProject');
     showNotification('🔄 Modo rotación activado - Gira el proyecto manualmente');
-  };
+  }, [projectRotation, showNotification]);
 
-  const saveRotation = () => {
+  const saveRotation = useCallback(() => {
     setProjectRotation(tempRotation);
     setIsRotating(false);
     setMapMode('view');
     showNotification('💾 Rotación guardada correctamente');
-  };
+  }, [tempRotation, showNotification]);
 
-  const cancelRotation = () => {
+  const cancelRotation = useCallback(() => {
     setIsRotating(false);
     setMapMode('view');
     showNotification('❌ Rotación cancelada');
-  };
+  }, [showNotification]);
 
-  const startMoveProject = () => {
+  const startMoveProject = useCallback(() => {
     setMapMode('moveProject');
     showNotification('🚀 Modo mover proyecto activado - Arrastra el marcador de origen');
-  };
+  }, [showNotification]);
 
-  const saveMoveProject = () => {
+  const saveMoveProject = useCallback(() => {
     setMapMode('view');
     showNotification('💾 Ubicación del proyecto guardada');
-  };
+  }, [showNotification]);
 
-  const cancelMoveProject = () => {
+  const cancelMoveProject = useCallback(() => {
     setMapMode('view');
     showNotification('❌ Movimiento cancelado');
-  };
+  }, [showNotification]);
 
-  const handlePhotoSubmit = async () => {
+  // ✅ FUNCIÓN EXISTENTE: Manejar envío de foto desktop
+  const handlePhotoSubmit = useCallback(async () => {
     if (!selectedLocation || !photoForm.title) {
       showNotification('❌ Por favor, completa al menos el título de la foto');
       return;
@@ -412,39 +514,19 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
     setPhotoForm({ title: '', tags: '', comment: '' });
     setSelectedLocation(null);
     setMapMode('view');
-  };
+  }, [selectedLocation, photoForm, projectOrigin, isRotating, tempRotation, projectRotation, onPhotoCapture, showNotification]);
 
-  const showNotification = (message) => {
-    const notification = document.createElement('div');
-    notification.className = 'map-notification';
-    notification.textContent = message;
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #2ecc71;
-      color: white;
-      padding: 12px 20px;
-      border-radius: 6px;
-      z-index: 10002;
-      font-weight: 500;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    `;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-      document.body.removeChild(notification);
-    }, 3000);
-  };
-
-  const currentRotation = isRotating ? tempRotation : projectRotation;
+  // ✅ OPTIMIZACIÓN: Memoizar la rotación actual
+  const currentRotation = useMemo(() => {
+    return isRotating ? tempRotation : projectRotation;
+  }, [isRotating, tempRotation, projectRotation]);
 
   return (
     <div className="enhanced-map-view">
       <div className="map-header">
         <div className="map-title">
           <h2>🗺️ Mapa - {project?.name}</h2>
-          <p>Gestiona tu proyecto en el mapa real</p>
+          <p>Gestiona tu proyecto en el mapa real {isMobileDevice() && '📱'}</p>
         </div>
         <button className="btn-close-map" onClick={onClose}>
           ✕ Cerrar
@@ -472,6 +554,7 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
               onClick={() => setMapMode('capturePhoto')}
             >
               📸 Capturar Foto
+              {isMobileDevice() && <span style={{fontSize: '10px', display: 'block'}}>(Modo Móvil)</span>}
             </button>
           </div>
         </div>
@@ -595,7 +678,11 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
         )}
         {mapMode === 'capturePhoto' && (
           <div className="mode-alert">
-            <span>📸 Haz clic en el mapa para colocar una nueva foto</span>
+            <span>
+              {isMobileDevice() 
+                ? '📱 Modo móvil: Toca el mapa para abrir la cámara y capturar una foto' 
+                : '📸 Haz clic en el mapa para colocar una nueva foto'}
+            </span>
           </div>
         )}
         {mapMode === 'rotateProject' && (
@@ -617,6 +704,16 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
 
       <div ref={mapRef} className="enhanced-map-container" />
 
+      {/* ✅ MODAL DE CAPTURA MÓVIL */}
+      {showMobileCapture && (
+        <MobileCaptureModal
+          position={mobileCapturePosition}
+          onSave={handleMobileCaptureSave}
+          onClose={() => setShowMobileCapture(false)}
+        />
+      )}
+
+      {/* ✅ MODAL EXISTENTE PARA DESKTOP */}
       {showPhotoForm && (
         <div className="photo-form-modal">
           <div className="photo-form-content">
