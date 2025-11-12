@@ -10,6 +10,7 @@ import Register from './pages/Register'
 // 🚀 LAZY LOADING - Componentes que se cargan solo cuando se necesitan
 const Projects = lazy(() => import('./pages/Projects'))
 const ProjectDetail = lazy(() => import('./pages/ProjectDetail'))
+const ImageGallery = lazy(() => import('./pages/ImageGallery'))  // ✅ NUEVO
 const PublicPhotoView = lazy(() => import('./pages/PublicPhotoView'))
 const ProjectPhotoView = lazy(() => import('./pages/ProjectPhotoView'))
 
@@ -67,7 +68,19 @@ function App() {
             <ProjectDetail />
           </ProtectedRoute>
         } />
-        
+
+        <Route path="/projects/:id" element={
+  <ProtectedRoute>
+    <ProjectDetail />
+  </ProtectedRoute>
+} />
+
+{/* ✅ NUEVA RUTA: Galería de imágenes normales */}
+<Route path="/projects/:id/gallery" element={
+  <ProtectedRoute>
+    <ImageGallery />
+  </ProtectedRoute>
+} />
         <Route path="/projects/:id/view/:photoId" element={
           <ProtectedRoute>
             <ProjectPhotoView />

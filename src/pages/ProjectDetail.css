@@ -298,3 +298,35 @@
 .btn-delete-photo:hover {
   background: rgba(220, 38, 38, 1);
 }
+/* ✅ Estilo para botón de galería */
+.btn-success {
+  background: #27ae60;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-success:hover {
+  background: #219653;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+}
+
+.btn-success:active {
+  transform: translateY(0);
+}
+
+/* Mejorar espaciado entre botones */
+.project-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}

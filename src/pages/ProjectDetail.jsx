@@ -233,34 +233,44 @@ const ProjectDetail = () => {
           </div>
 
           <div className="project-actions">
-            {photosWithCoords.length > 0 && (
-              <>
-                <button className="btn btn-secondary" onClick={exportToCSV}>
-                  <Download size={20} />
-                  Exportar CSV
-                </button>
-                <button 
-                  className="btn btn-secondary" 
-                  onClick={() => setShowEnhancedMap(true)}
-                >
-                  🗺️ Mapa Avanzado
-                </button>
-              </>
-            )}
-            
-            <label className="btn btn-primary upload-btn">
-              <Upload size={20} />
-              {uploading ? 'Subiendo...' : 'Subir Fotos + TXT'}
-              <input
-                type="file"
-                multiple
-                accept="image/*,.txt"
-                onChange={handleFileUpload}
-                disabled={uploading}
-                style={{ display: 'none' }}
-              />
-            </label>
-          </div>
+  {photosWithCoords.length > 0 && (
+    <>
+      <button className="btn btn-secondary" onClick={exportToCSV}>
+        <Download size={20} />
+        Exportar CSV
+      </button>
+      <button 
+        className="btn btn-secondary" 
+        onClick={() => setShowEnhancedMap(true)}
+      >
+        🗺️ Mapa Avanzado
+      </button>
+    </>
+  )}
+  
+  {/* ✅ BOTÓN 1: Imágenes 360° (renombrado) */}
+  <label className="btn btn-primary upload-btn">
+    <Upload size={20} />
+    {uploading ? 'Subiendo...' : 'Importar Imágenes 360° + TXT'}
+    <input
+      type="file"
+      multiple
+      accept="image/*,.txt"
+      onChange={handleFileUpload}
+      disabled={uploading}
+      style={{ display: 'none' }}
+    />
+  </label>
+
+  {/* ✅ BOTÓN 2: Imágenes normales (NUEVO) */}
+  <button 
+    className="btn btn-success"
+    onClick={() => navigate(`/projects/${id}/gallery`)}
+  >
+    <ImageIcon size={20} />
+    Importar Imágenes
+  </button>
+</div>
         </div>
 
         {photosWithCoords.length > 0 && (
