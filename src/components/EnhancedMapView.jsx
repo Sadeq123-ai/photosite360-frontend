@@ -12,7 +12,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
+const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markersRef = useRef([]);
@@ -33,15 +33,6 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
   // Estados para captura móvil
   const [showMobileCapture, setShowMobileCapture] = useState(false);
   const [mobileCapturePosition, setMobileCapturePosition] = useState(null);
-  
-  // Estados para captura desktop existente
-  const [showPhotoForm, setShowPhotoForm] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [photoForm, setPhotoForm] = useState({
-    title: '',
-    tags: '',
-    comment: ''
-  });
   
   // Estados para rotación
   const [rotationAngle, setRotationAngle] = useState('');
@@ -147,71 +138,12 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
         setShowMobileCapture(true);
         showNotification('📱 Modo móvil: Abriendo cámara...');
       } else {
-        setSelectedLocation({ lat, lng });
-        setShowPhotoForm(true);
-        showNotification('🖥️ Modo desktop: Completa la información');
+        showNotification('🖥️ Modo desktop: Usa el botón "Subir Imágenes Normales"');
       }
     }
   }, [mapMode, showNotification, isMobileDevice]);
 
-  // FUNCIÓN MEJORADA: Guardar captura móvil con marcadores
-  const handleMobileCaptureSave = useCallback(async (imageData) => {
-    try {
-      console.log('💾 Guardando imagen móvil:', imageData);
-      
-      let x = 0, y = 0;
-      if (projectOrigin) {
-        const deltaLng = imageData.longitude - projectOrigin[1];
-        const deltaLat = imageData.latitude - projectOrigin[0];
-        
-        const currentRotation = isRotating ? tempRotation : projectRotation;
-        const angleRad = (currentRotation * Math.PI) / 180;
-        const cosAngle = Math.cos(angleRad);
-        const sinAngle = Math.sin(angleRad);
-        
-        x = (deltaLng * cosAngle - deltaLat * sinAngle) * 100000;
-        y = (deltaLng * sinAngle + deltaLat * cosAngle) * 100000;
-      }
-
-      const photoData = {
-        title: imageData.title || `Foto ${new Date().toLocaleString()}`,
-        tags: imageData.tags || '',
-        comment: imageData.comment || '',
-        coordinates: { x, y },
-        latitude: x,
-        longitude: y,
-        realLocation: { lat: imageData.latitude, lng: imageData.longitude },
-        url: imageData.url,
-        level: imageData.level,
-        room: imageData.room,
-        pk: imageData.pk,
-        filename: imageData.filename,
-        uploaded_at: new Date().toISOString(),
-        type: 'normal',
-        description: `${imageData.level || ''} ${imageData.room || ''} ${imageData.comment || ''}`.trim()
-      };
-
-      console.log('📸 Datos de foto preparados:', photoData);
-
-      if (onPhotoCapture) {
-        await onPhotoCapture(photoData);
-      }
-
-      // ACTUALIZAR MARCADORES INMEDIATAMENTE
-      setTimeout(() => {
-        updateMarkers();
-      }, 500);
-      
-      showNotification('✅ Imagen capturada y marcador añadido al mapa');
-      setShowMobileCapture(false);
-      
-    } catch (error) {
-      console.error('❌ Error guardando imagen móvil:', error);
-      showNotification('❌ Error al guardar la imagen');
-    }
-  }, [projectOrigin, isRotating, tempRotation, projectRotation, onPhotoCapture, showNotification, updateMarkers]);
-
-  // Convertir coordenadas
+  // Convertir coordenadas del proyecto a coordenadas reales
   const convertToRealLatLng = useCallback((x, y, rotation = projectRotation) => {
     if (!projectOrigin) {
       return [40.4168 + (parseFloat(y) / 1000), -3.7038 + (parseFloat(x) / 1000)];
@@ -230,11 +162,19 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
     ];
   }, [projectOrigin, projectRotation]);
 
-  // FUNCIÓN MEJORADA: Actualizar marcadores para ambos tipos
+  // Actualizar marcadores
   const updateMarkers = useCallback(() => {
-    markersRef.current.forEach(marker => marker.remove());
+    if (!mapInstance.current) return;
+
+    // Limpiar marcadores anteriores
+    markersRef.current.forEach(marker => {
+      if (marker && mapInstance.current) {
+        mapInstance.current.removeLayer(marker);
+      }
+    });
     markersRef.current = [];
 
+    // Marcador de origen del proyecto
     if (projectOrigin) {
       const currentRotation = isRotating ? tempRotation : projectRotation;
       
@@ -274,6 +214,7 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
 
       markersRef.current.push(originMarker);
 
+      // Línea de dirección
       const angleRad = (currentRotation * Math.PI) / 180;
       const endPoint = L.latLng(
         projectOrigin[0] + Math.cos(angleRad) * 0.001,
@@ -290,90 +231,96 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
       markersRef.current.push(directionLine);
     }
 
-    // PROCESAR TODAS LAS FOTOS (360° + NORMALES)
-    const allPhotos = Array.isArray(photos) ? photos : [];
-    
-    allPhotos.forEach((photo, index) => {
-      let photoLatLng;
-      
-      if (photo.type === 'normal' && photo.realLocation) {
-        // IMÁGENES NORMALES: Usar coordenadas reales
-        photoLatLng = [photo.realLocation.lat, photo.realLocation.lng];
-      } else {
-        // FOTOS 360°: Usar sistema de coordenadas del proyecto
-        const currentRotation = isRotating ? tempRotation : projectRotation;
-        photoLatLng = convertToRealLatLng(photo.latitude, photo.longitude, currentRotation);
+    // Marcadores de fotos
+    photos.forEach((photo, index) => {
+      if (!photo.latitude || !photo.longitude) return;
+
+      try {
+        let photoLatLng;
+        
+        if (photo.type === 'normal' && photo.realLocation) {
+          // Imágenes normales con ubicación real
+          photoLatLng = [photo.realLocation.lat, photo.realLocation.lng];
+        } else {
+          // Fotos 360° con coordenadas del proyecto
+          const currentRotation = isRotating ? tempRotation : projectRotation;
+          photoLatLng = convertToRealLatLng(photo.latitude, photo.longitude, currentRotation);
+        }
+        
+        const isNormalImage = photo.type === 'normal';
+        const markerNumber = index + 1;
+        
+        const photoIcon = L.divIcon({
+          className: `photo-marker ${isNormalImage ? 'normal-photo' : 'photo-360'}`,
+          html: `
+            <div class="marker-pin ${isNormalImage ? 'normal-pin' : 'photo-pin'}">
+              <span class="marker-number">${markerNumber}</span>
+              <div class="marker-badge">${isNormalImage ? '🖼️' : '📸'}</div>
+            </div>
+          `,
+          iconSize: [36, 36],
+          iconAnchor: [18, 36]
+        });
+
+        const imageUrl = photo.url?.startsWith('http') 
+          ? photo.url 
+          : `https://web-production-51970.up.railway.app${photo.url || ''}`;
+
+        const popupContent = isNormalImage ? `
+          <div class="photo-popup">
+            <h4>🖼️ ${photo.title || 'Imagen'}</h4>
+            <img src="${imageUrl}" alt="${photo.title}" 
+                 style="max-width: 200px; max-height: 150px; border-radius: 6px; margin: 6px 0;" />
+            <div class="popup-info">
+              <p><strong>Nivel:</strong> ${photo.level || 'No especificado'}</p>
+              <p><strong>Habitación:</strong> ${photo.room || 'No especificado'}</p>
+              <p><strong>PK:</strong> ${photo.pk || 'No especificado'}</p>
+              <p><strong>Coordenadas:</strong> ${photoLatLng[0].toFixed(6)}, ${photoLatLng[1].toFixed(6)}</p>
+              ${photo.comment ? `<p><strong>Comentario:</strong> ${photo.comment}</p>` : ''}
+            </div>
+            <div class="popup-actions">
+              <button onclick="window.open('${imageUrl}', '_blank')" class="popup-btn">
+                🔍 Ver Imagen
+              </button>
+            </div>
+          </div>
+        ` : `
+          <div class="photo-popup">
+            <h4>📸 ${photo.title || 'Foto 360°'}</h4>
+            <img src="${imageUrl}" alt="${photo.title}" 
+                 style="max-width: 200px; max-height: 150px; border-radius: 6px; margin: 6px 0;" />
+            <div class="popup-info">
+              <p><strong>Coordenadas Proyecto:</strong> ${photo.latitude}, ${photo.longitude}</p>
+              <p><strong>Coordenadas Reales:</strong> ${photoLatLng[0].toFixed(6)}, ${photoLatLng[1].toFixed(6)}</p>
+              ${photo.description ? `<p><strong>Descripción:</strong> ${photo.description}</p>` : ''}
+            </div>
+            <div class="popup-actions">
+              <a href="/projects/${project?.id}/view/${photo.id}" class="popup-btn" target="_blank">
+                🔍 Ver 360°
+              </a>
+            </div>
+          </div>
+        `;
+
+        const marker = L.marker(photoLatLng, { icon: photoIcon })
+          .bindPopup(popupContent)
+          .addTo(mapInstance.current);
+
+        markersRef.current.push(marker);
+
+      } catch (error) {
+        console.error('Error creando marcador:', error);
       }
-      
-      const isNormalImage = photo.type === 'normal';
-      const markerNumber = index + 1;
-      
-      const photoIcon = L.divIcon({
-        className: `photo-marker ${isNormalImage ? 'normal-photo' : 'photo-360'}`,
-        html: `
-          <div class="marker-pin ${isNormalImage ? 'normal-pin' : 'photo-pin'}">
-            <span class="marker-number">${markerNumber}</span>
-            <div class="marker-badge">${isNormalImage ? '🖼️' : '📸'}</div>
-          </div>
-        `,
-        iconSize: [36, 36],
-        iconAnchor: [18, 36]
-      });
-
-      const imageUrl = photo.url?.startsWith('http') 
-        ? photo.url 
-        : `https://web-production-51970.up.railway.app${photo.url || ''}`;
-
-      const popupContent = isNormalImage ? `
-        <div class="photo-popup">
-          <h4>🖼️ ${photo.title || 'Imagen'}</h4>
-          <img src="${imageUrl}" alt="${photo.title}" 
-               style="max-width: 200px; max-height: 150px; border-radius: 6px; margin: 6px 0;" />
-          <div class="popup-info">
-            <p><strong>Nivel:</strong> ${photo.level || 'No especificado'}</p>
-            <p><strong>Habitación:</strong> ${photo.room || 'No especificado'}</p>
-            <p><strong>PK:</strong> ${photo.pk || 'No especificado'}</p>
-            <p><strong>Coordenadas:</strong> ${photoLatLng[0].toFixed(6)}, ${photoLatLng[1].toFixed(6)}</p>
-            ${photo.comment ? `<p><strong>Comentario:</strong> ${photo.comment}</p>` : ''}
-          </div>
-          <div class="popup-actions">
-            <button onclick="window.open('${imageUrl}', '_blank')" class="popup-btn">
-              🔍 Ver Imagen
-            </button>
-          </div>
-        </div>
-      ` : `
-        <div class="photo-popup">
-          <h4>📸 ${photo.title || 'Foto 360°'}</h4>
-          <img src="${imageUrl}" alt="${photo.title}" 
-               style="max-width: 200px; max-height: 150px; border-radius: 6px; margin: 6px 0;" />
-          <div class="popup-info">
-            <p><strong>Coordenadas Proyecto:</strong> ${photo.latitude}, ${photo.longitude}</p>
-            <p><strong>Coordenadas Reales:</strong> ${photoLatLng[0].toFixed(6)}, ${photoLatLng[1].toFixed(6)}</p>
-            ${photo.description ? `<p><strong>Descripción:</strong> ${photo.description}</p>` : ''}
-          </div>
-          <div class="popup-actions">
-            <a href="/projects/${project?.id}/view/${photo.id}" class="popup-btn" target="_blank">
-              🔍 Ver 360°
-            </a>
-          </div>
-        </div>
-      `;
-
-      const marker = L.marker(photoLatLng, { icon: photoIcon })
-        .bindPopup(popupContent)
-        .addTo(mapInstance.current);
-
-      markersRef.current.push(marker);
     });
 
+    // Ajustar vista si hay marcadores
     if (markersRef.current.length > 0 && mapInstance.current) {
-      const group = new L.featureGroup(markersRef.current);
+      const group = L.featureGroup(markersRef.current);
       mapInstance.current.fitBounds(group.getBounds().pad(0.1));
     }
   }, [photos, project, projectOrigin, projectRotation, isRotating, tempRotation, mapMode, convertToRealLatLng]);
 
-  // EFECTO PRINCIPAL: Inicializar mapa
+  // Efecto principal: Inicializar mapa
   useEffect(() => {
     if (!mapInstance.current && mapRef.current) {
       const initialCenter = projectOrigin || [40.4168, -3.7038];
@@ -403,9 +350,9 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
         mapInstance.current = null;
       }
     };
-  }, [photos, project, mapMode, projectOrigin, projectRotation, isRotating, tempRotation, handleMapClick, initializeBaseLayers, updateMarkers]);
+  }, [projectOrigin, projectRotation, isRotating, tempRotation, handleMapClick, initializeBaseLayers, updateMarkers]);
 
-  // EFECTOS PARA PERSISTENCIA
+  // Efectos para persistencia
   useEffect(() => {
     if (projectOrigin) {
       localStorage.setItem(`project_origin_${project?.id}`, JSON.stringify(projectOrigin));
@@ -416,46 +363,25 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
     localStorage.setItem(`project_rotation_${project?.id}`, projectRotation.toString());
   }, [projectRotation, project?.id]);
 
-  // FUNCIONES EXISTENTES
-  const locateUser = useCallback(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserLocation({ lat: latitude, lng: longitude });
-          
-          const userIcon = L.divIcon({
-            className: 'user-marker',
-            html: `
-              <div class="marker-pin user-pin">
-                <span>📍</span>
-              </div>
-            `,
-            iconSize: [28, 28],
-            iconAnchor: [14, 28]
-          });
-
-          const userMarker = L.marker([latitude, longitude], { icon: userIcon })
-            .bindPopup(`
-              <div class="user-popup">
-                <h4>📍 Tu Ubicación Actual</h4>
-                <p>Lat: ${latitude.toFixed(6)}</p>
-                <p>Lng: ${longitude.toFixed(6)}</p>
-              </div>
-            `)
-            .addTo(mapInstance.current);
-
-          markersRef.current.push(userMarker);
-          mapInstance.current.setView([latitude, longitude], 18);
-        },
-        (error) => {
-          showNotification('❌ Error obteniendo ubicación: ' + error.message);
-        }
-      );
+  // Función para captura móvil
+  const handleMobileCaptureSave = useCallback(async (imageData) => {
+    try {
+      console.log('💾 Guardando imagen móvil:', imageData);
+      
+      if (onPhotoCapture) {
+        await onPhotoCapture(imageData);
+      }
+      
+      showNotification('✅ Imagen capturada y guardada en la nube');
+      setShowMobileCapture(false);
+      
+    } catch (error) {
+      console.error('❌ Error guardando imagen móvil:', error);
+      showNotification('❌ Error al guardar la imagen');
     }
-  }, [showNotification]);
+  }, [onPhotoCapture, showNotification]);
 
-  // FUNCIONES DE ROTACIÓN
+  // Funciones de rotación
   const rotateProject = useCallback((degrees) => {
     if (isRotating) {
       setTempRotation(prev => (prev + degrees) % 360);
@@ -512,46 +438,6 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
     showNotification('❌ Movimiento cancelado');
   }, [showNotification]);
 
-  // Manejar envío de foto desktop
-  const handlePhotoSubmit = useCallback(async () => {
-    if (!selectedLocation || !photoForm.title) {
-      showNotification('❌ Por favor, completa al menos el título de la foto');
-      return;
-    }
-
-    let x = 0, y = 0;
-    if (projectOrigin) {
-      const deltaLng = selectedLocation.lng - projectOrigin[1];
-      const deltaLat = selectedLocation.lat - projectOrigin[0];
-      
-      const currentRotation = isRotating ? tempRotation : projectRotation;
-      const angleRad = (currentRotation * Math.PI) / 180;
-      const cosAngle = Math.cos(angleRad);
-      const sinAngle = Math.sin(angleRad);
-      
-      x = (deltaLng * cosAngle - deltaLat * sinAngle) * 100000;
-      y = (deltaLng * sinAngle + deltaLat * cosAngle) * 100000;
-    }
-
-    const photoData = {
-      title: photoForm.title,
-      tags: photoForm.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-      comment: photoForm.comment,
-      coordinates: { x, y },
-      realLocation: selectedLocation,
-      type: 'normal'
-    };
-
-    if (onPhotoCapture) {
-      onPhotoCapture(photoData);
-    }
-
-    setShowPhotoForm(false);
-    setPhotoForm({ title: '', tags: '', comment: '' });
-    setSelectedLocation(null);
-    setMapMode('view');
-  }, [selectedLocation, photoForm, projectOrigin, isRotating, tempRotation, projectRotation, onPhotoCapture, showNotification]);
-
   // Memoizar la rotación actual
   const currentRotation = useMemo(() => {
     return isRotating ? tempRotation : projectRotation;
@@ -561,7 +447,7 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
     <div className="enhanced-map-view">
       <div className="map-header">
         <div className="map-title">
-          <h2>🗺️ Mapa - {project?.name}</h2>
+          <h2>🗺️ Mapa Avanzado - {project?.name}</h2>
           <p>Gestiona tu proyecto en el mapa real {isMobileDevice() && '📱'}</p>
         </div>
         <button className="btn-close-map" onClick={onClose}>
@@ -615,15 +501,6 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
               onClick={() => changeBaseLayer('hybrid')}
             >
               🌍 Híbrido
-            </button>
-          </div>
-        </div>
-
-        <div className="control-section">
-          <h4>Herramientas</h4>
-          <div className="control-group">
-            <button className="control-btn" onClick={locateUser}>
-              📍 Mi Ubicación
             </button>
           </div>
         </div>
@@ -717,7 +594,7 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
             <span>
               {isMobileDevice() 
                 ? '📱 Modo móvil: Toca el mapa para abrir la cámara y capturar una foto' 
-                : '📸 Haz clic en el mapa para colocar una nueva foto'}
+                : '📸 Modo desktop: Usa el botón "Subir Imágenes Normales" en el proyecto'}
             </span>
           </div>
         )}
@@ -740,62 +617,13 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
 
       <div ref={mapRef} className="enhanced-map-container" />
 
-      {/* MODAL DE CAPTURA MÓVIL */}
+      {/* Modal de captura móvil */}
       {showMobileCapture && (
         <MobileCaptureModal
           position={mobileCapturePosition}
           onSave={handleMobileCaptureSave}
           onClose={() => setShowMobileCapture(false)}
         />
-      )}
-
-      {/* MODAL EXISTENTE PARA DESKTOP */}
-      {showPhotoForm && (
-        <div className="photo-form-modal">
-          <div className="photo-form-content">
-            <h3>📸 Capturar Nueva Foto</h3>
-            <div className="form-group">
-              <label>Título de la foto:</label>
-              <input
-                type="text"
-                value={photoForm.title}
-                onChange={(e) => setPhotoForm({...photoForm, title: e.target.value})}
-                placeholder="Ej: Columna principal A-1"
-              />
-            </div>
-            <div className="form-group">
-              <label>Etiquetas (separadas por comas):</label>
-              <input
-                type="text"
-                value={photoForm.tags}
-                onChange={(e) => setPhotoForm({...photoForm, tags: e.target.value})}
-                placeholder="Ej: columna, estructura, defecto"
-              />
-            </div>
-            <div className="form-group">
-              <label>Comentario:</label>
-              <textarea
-                value={photoForm.comment}
-                onChange={(e) => setPhotoForm({...photoForm, comment: e.target.value})}
-                placeholder="Descripción o observaciones..."
-                rows="3"
-              />
-            </div>
-            <div className="location-info">
-              <strong>Ubicación seleccionada:</strong>
-              <p>Lat: {selectedLocation?.lat.toFixed(6)}</p>
-              <p>Lng: {selectedLocation?.lng.toFixed(6)}</p>
-            </div>
-            <div className="form-actions">
-              <button className="btn-cancel" onClick={() => setShowPhotoForm(false)}>
-                Cancelar
-              </button>
-              <button className="btn-submit" onClick={handlePhotoSubmit}>
-                ✅ Guardar Foto
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       <div className="map-legend">
@@ -811,10 +639,6 @@ const EnhancedMapView = ({ photos, project, onClose, onPhotoCapture }) => {
         <div className="legend-item">
           <div className="legend-color normal-pin"></div>
           <span>Imágenes Normales</span>
-        </div>
-        <div className="legend-item">
-          <div className="legend-color user-pin"></div>
-          <span>Tu Ubicación</span>
         </div>
       </div>
     </div>
