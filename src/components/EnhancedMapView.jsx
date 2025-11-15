@@ -39,8 +39,45 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
   const [isRotating, setIsRotating] = useState(false);
   const [tempRotation, setTempRotation] = useState(0);
 
+  // ✅ NUEVOS ESTADOS
+  const [showFileImport, setShowFileImport] = useState(false);
+  const [showImageUpload, setShowImageUpload] = useState(false);
+  const [selectedImageForMap, setSelectedImageForMap] = useState(null);
+
   // Referencias para las capas base
   const baseLayersRef = useRef({});
+
+  // ✅ FUNCIÓN DE NOTIFICACIÓN
+  const showNotification = useCallback((message, type = 'success') => {
+    const notification = document.createElement('div');
+    notification.className = 'map-notification';
+    notification.textContent = message;
+    
+    const backgroundColor = type === 'success' ? '#2ecc71' : 
+                           type === 'warning' ? '#f39c12' : 
+                           '#e74c3c';
+    
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${backgroundColor};
+      color: white;
+      padding: 12px 20px;
+      border-radius: 6px;
+      z-index: 10002;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        document.body.removeChild(notification);
+      }
+    }, 3000);
+  }, []);
 
   // Detectar si es dispositivo móvil
   const isMobileDevice = useCallback(() => {
@@ -93,38 +130,72 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
     try {
       baseLayersRef.current[layerKey].addTo(mapInstance.current);
       setActiveBaseLayer(layerKey);
+      showNotification(`Mapa cambiado a ${layerKey}`);
     } catch (error) {
       console.error('Error añadiendo capa:', error);
+      showNotification('Error al cambiar mapa', 'error');
     }
-  }, []);
+  }, [showNotification]);
 
-  // Mostrar notificaciones
-  const showNotification = useCallback((message) => {
-    const notification = document.createElement('div');
-    notification.className = 'map-notification';
-    notification.textContent = message;
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #2ecc71;
-      color: white;
-      padding: 12px 20px;
-      border-radius: 6px;
-      z-index: 10002;
-      font-weight: 500;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    `;
-    document.body.appendChild(notification);
+  // ✅ FUNCIÓN: Subir imagen desde portátil y colocarla en mapa
+  const handleImageUploadForMap = useCallback((e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    setSelectedImageForMap(file);
+    setShowImageUpload(false);
     
-    setTimeout(() => {
-      if (document.body.contains(notification)) {
-        document.body.removeChild(notification);
-      }
-    }, 3000);
-  }, []);
+    showNotification('📸 Imagen seleccionada. Haz clic en el mapa para colocarla');
+  }, [showNotification]);
 
-  // Manejar click en el mapa
+  // ✅ FUNCIÓN: Colocar imagen en mapa al hacer click
+  const handlePlaceImageOnMap = useCallback(async (e) => {
+    if (!selectedImageForMap) return;
+
+    const { lat, lng } = e.latlng;
+    
+    try {
+      // Subir imagen a Cloudinary
+      const formData = new FormData();
+      formData.append('file', selectedImageForMap);
+      formData.append('upload_preset', 'photosite360');
+
+      const cloudinaryResponse = await fetch('https://api.cloudinary.com/v1_1/dryuzad8w/image/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const cloudinaryData = await cloudinaryResponse.json();
+
+      if (cloudinaryData.secure_url) {
+        // Preparar datos para guardar
+        const imageData = {
+          file: selectedImageForMap,
+          url: cloudinaryData.secure_url,
+          latitude: lat,
+          longitude: lng,
+          title: `Imagen ${new Date().toLocaleString()}`,
+          filename: selectedImageForMap.name,
+          uploaded_at: new Date().toISOString(),
+          type: 'normal'
+        };
+
+        // Llamar función padre para guardar
+        if (onPhotoCapture) {
+          await onPhotoCapture(imageData);
+        }
+
+        showNotification('✅ Imagen colocada en el mapa y guardada en galería');
+        setSelectedImageForMap(null);
+      }
+    } catch (error) {
+      console.error('Error colocando imagen en mapa:', error);
+      showNotification('❌ Error al colocar imagen', 'error');
+    }
+  }, [selectedImageForMap, onPhotoCapture, showNotification]);
+
+  // ✅ FUNCIÓN ÚNICA: Manejar click en el mapa
   const handleMapClick = useCallback((e) => {
     const { lat, lng } = e.latlng;
     
@@ -138,10 +209,16 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
         setShowMobileCapture(true);
         showNotification('📱 Modo móvil: Abriendo cámara...');
       } else {
-        showNotification('🖥️ Modo desktop: Usa el botón "Subir Imágenes Normales"');
+        // ✅ NUEVO: En portátil, abrir selector de imagen
+        setMobileCapturePosition({ lat, lng });
+        setShowImageUpload(true);
+        showNotification('🖥️ Selecciona una imagen para colocar en el mapa');
       }
+    } else if (selectedImageForMap) {
+      // ✅ NUEVO: Colocar imagen seleccionada
+      handlePlaceImageOnMap(e);
     }
-  }, [mapMode, showNotification, isMobileDevice]);
+  }, [mapMode, isMobileDevice, selectedImageForMap, handlePlaceImageOnMap, showNotification]);
 
   // Convertir coordenadas del proyecto a coordenadas reales
   const convertToRealLatLng = useCallback((x, y, rotation = projectRotation) => {
@@ -209,6 +286,7 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
         if (mapMode === 'moveProject') {
           const newOrigin = e.target.getLatLng();
           setProjectOrigin([newOrigin.lat, newOrigin.lng]);
+          showNotification('📍 Origen movido - Guarda los cambios');
         }
       });
 
@@ -363,6 +441,57 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
     localStorage.setItem(`project_rotation_${project?.id}`, projectRotation.toString());
   }, [projectRotation, project?.id]);
 
+  // ✅ FUNCIÓN MEJORADA: Ubicación en tiempo real
+  const locateUser = useCallback(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation({ lat: latitude, lng: longitude });
+          
+          const userIcon = L.divIcon({
+            className: 'user-marker',
+            html: `
+              <div class="marker-pin user-pin">
+                <span>📍</span>
+              </div>
+            `,
+            iconSize: [28, 28],
+            iconAnchor: [14, 28]
+          });
+
+          const userMarker = L.marker([latitude, longitude], { icon: userIcon })
+            .bindPopup(`
+              <div class="user-popup">
+                <h4>📍 Tu Ubicación Actual</h4>
+                <p>Lat: ${latitude.toFixed(6)}</p>
+                <p>Lng: ${longitude.toFixed(6)}</p>
+              </div>
+            `)
+            .addTo(mapInstance.current);
+
+          markersRef.current.push(userMarker);
+          
+          // Centrar mapa en ubicación
+          mapInstance.current.setView([latitude, longitude], 18);
+          
+          showNotification('📍 Ubicación encontrada');
+        },
+        (error) => {
+          console.error('Error ubicación:', error);
+          showNotification('❌ No se pudo obtener la ubicación', 'error');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
+        }
+      );
+    } else {
+      showNotification('❌ Geolocalización no soportada', 'error');
+    }
+  }, [showNotification]);
+
   // Función para captura móvil
   const handleMobileCaptureSave = useCallback(async (imageData) => {
     try {
@@ -377,7 +506,7 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
       
     } catch (error) {
       console.error('❌ Error guardando imagen móvil:', error);
-      showNotification('❌ Error al guardar la imagen');
+      showNotification('❌ Error al guardar la imagen', 'error');
     }
   }, [onPhotoCapture, showNotification]);
 
@@ -504,6 +633,29 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
             </button>
           </div>
         </div>
+
+        {/* ✅ NUEVA SECCIÓN: Herramientas Avanzadas */}
+        <div className="control-section">
+          <h4>Herramientas Avanzadas</h4>
+          <div className="control-group">
+            <button className="control-btn" onClick={locateUser}>
+              📍 Mi Ubicación
+            </button>
+            <button 
+              className="control-btn"
+              onClick={() => setShowFileImport(true)}
+            >
+              🗂️ Importar GIS/CAD
+            </button>
+            <button 
+              className="control-btn"
+              onClick={() => setShowImageUpload(true)}
+              disabled={selectedImageForMap}
+            >
+              📸 Colocar Imagen
+            </button>
+          </div>
+        </div>
       </div>
 
       {projectOrigin && (
@@ -594,7 +746,7 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
             <span>
               {isMobileDevice() 
                 ? '📱 Modo móvil: Toca el mapa para abrir la cámara y capturar una foto' 
-                : '📸 Modo desktop: Usa el botón "Subir Imágenes Normales" en el proyecto'}
+                : '📸 Modo desktop: Usa el botón "Colocar Imagen" para añadir imágenes al mapa'}
             </span>
           </div>
         )}
@@ -606,6 +758,17 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
         {mapMode === 'moveProject' && (
           <div className="mode-alert warning">
             <span>🚀 Modo mover activo - Arrastra el marcador de origen</span>
+          </div>
+        )}
+        {selectedImageForMap && (
+          <div className="mode-alert warning">
+            <span>📸 Modo colocar imagen activo - Haz clic en el mapa para colocar "{selectedImageForMap.name}"</span>
+            <button 
+              className="btn-cancel-small"
+              onClick={() => setSelectedImageForMap(null)}
+            >
+              ✕ Cancelar
+            </button>
           </div>
         )}
         {!projectOrigin && (
@@ -626,6 +789,63 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
         />
       )}
 
+      {/* ✅ MODAL IMPORTAR GIS/CAD */}
+      {showFileImport && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>🗂️ Importar Archivos GIS/CAD</h3>
+              <button className="close-btn" onClick={() => setShowFileImport(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p>Funcionalidad en desarrollo...</p>
+              <p>Próximamente podrás importar:</p>
+              <ul>
+                <li>📁 <strong>KML/KMZ</strong> - Datos de Google Earth</li>
+                <li>📐 <strong>DWG</strong> - Planos de AutoCAD</li>
+                <li>🗺️ <strong>Shapefile</strong> - Datos GIS profesionales</li>
+              </ul>
+              <div className="modal-actions">
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => setShowFileImport(false)}
+                >
+                  Entendido
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ MODAL SUBIR IMAGEN PARA MAPA */}
+      {showImageUpload && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>📸 Colocar Imagen en el Mapa</h3>
+              <button className="close-btn" onClick={() => setShowImageUpload(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p>Selecciona una imagen para colocar en el mapa:</p>
+              <label className="file-input-label large">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUploadForMap}
+                />
+                <span className="file-input-button">
+                  📁 Seleccionar Imagen
+                </span>
+              </label>
+              <p className="help-text">
+                Después de seleccionar, haz clic en el mapa donde quieras colocar la imagen
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="map-legend">
         <div className="legend-title">Leyenda</div>
         <div className="legend-item">
@@ -639,6 +859,10 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
         <div className="legend-item">
           <div className="legend-color normal-pin"></div>
           <span>Imágenes Normales</span>
+        </div>
+        <div className="legend-item">
+          <div className="legend-color user-pin"></div>
+          <span>Tu Ubicación</span>
         </div>
       </div>
     </div>

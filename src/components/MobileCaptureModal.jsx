@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import './MobileCaptureModal.css';
 
 const MobileCaptureModal = ({ position, onSave, onClose }) => {
@@ -10,54 +10,25 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
     const [availableLevels, setAvailableLevels] = useState([]);
     const [availableRooms, setAvailableRooms] = useState([]);
 
-    // ✅ CARGAR ETIQUETAS EXISTENTES
+    // Cargar etiquetas al iniciar
     useEffect(() => {
         loadAvailableTags();
     }, []);
 
     const loadAvailableTags = () => {
         try {
-            // Cargar etiquetas del localStorage (mismo sistema que TagManager)
-            const savedTags = JSON.parse(localStorage.getItem(`project_tags`) || '[]');
-            const predefinedTags = [
-                { id: 'p00', name: 'P00', category: 'Planta' },
-                { id: 'p01', name: 'P01', category: 'Planta' },
-                { id: 'p02', name: 'P02', category: 'Planta' },
-                { id: 'p03', name: 'P03', category: 'Planta' },
-                { id: 'p04', name: 'P04', category: 'Planta' },
-                { id: 's01', name: 'S01', category: 'Sección' },
-                { id: 's02', name: 'S02', category: 'Sección' },
-                { id: 's03', name: 'S03', category: 'Sección' },
-                { id: 'salon', name: 'Salon', category: 'Espacio' },
-                { id: 'cocina', name: 'Cocina', category: 'Espacio' },
-                { id: 'baño', name: 'Baño', category: 'Espacio' },
-                { id: 'dormitorio', name: 'Dormitorio', category: 'Espacio' },
-                { id: 'oficina', name: 'Oficina', category: 'Espacio' },
-                { id: 'terraza', name: 'Terraza', category: 'Espacio' },
-                { id: 'garaje', name: 'Garaje', category: 'Espacio' },
-                { id: 'fachada', name: 'Fachada', category: 'Exterior' },
-                { id: 'jardin', name: 'Jardin', category: 'Exterior' },
-                { id: 'piscina', name: 'Piscina', category: 'Exterior' },
-            ];
+            const levels = ['', 'P00', 'P01', 'P02', 'P03', 'P04', 'S01', 'S02', 'S03'];
+            const rooms = ['', 'Salon', 'Cocina', 'Baño', 'Dormitorio', 'Oficina', 'Terraza', 'Garaje', 'Fachada', 'Jardin', 'Piscina'];
             
-            const allTags = [...predefinedTags, ...savedTags];
-            
-            // Separar por categorías
-            const levels = allTags.filter(tag => tag.category === 'Planta').map(tag => tag.name);
-            const rooms = allTags.filter(tag => tag.category === 'Espacio' || tag.category === 'Exterior').map(tag => tag.name);
-            
-            setAvailableLevels(['', ...levels]);
-            setAvailableRooms(['', ...rooms]);
-            
+            setAvailableLevels(levels);
+            setAvailableRooms(rooms);
         } catch (error) {
             console.error('Error cargando etiquetas:', error);
-            // Valores por defecto
-            setAvailableLevels(['', 'P00', 'P01', 'P02', 'P03', 'P04', 'S01', 'S02', 'S03']);
-            setAvailableRooms(['', 'Salon', 'Cocina', 'Baño', 'Dormitorio', 'Oficina', 'Terraza', 'Garaje', 'Fachada', 'Jardin', 'Piscina']);
+            setAvailableLevels(['', 'P00', 'P01', 'P02']);
+            setAvailableRooms(['', 'Salon', 'Cocina', 'Baño']);
         }
     };
 
-    // Abrir cámara nativa del móvil
     const openNativeCamera = () => {
         const input = document.createElement('input');
         input.type = 'file';
@@ -76,7 +47,6 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
         input.click();
     };
 
-    // Subir imagen a Cloudinary
     const uploadToCloudinary = async (file) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -94,20 +64,17 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
         }
     };
 
-    // Guardar todo
     const handleSave = async () => {
         if (!capturedImage) {
             alert('Primero captura una imagen');
             return;
         }
 
-        // Subir imagen a Cloudinary
         const cloudinaryResult = await uploadToCloudinary(capturedImage);
         
         if (cloudinaryResult) {
-            // Preparar datos para guardar
             const imageData = {
-                file: capturedImage, // ✅ Imagen real para subir al backend
+                file: capturedImage,
                 url: cloudinaryResult.secure_url,
                 latitude: position.lat,
                 longitude: position.lng,
@@ -122,7 +89,6 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
                 type: 'normal'
             };
 
-            // Llamar función padre para guardar en backend
             onSave(imageData);
         }
     };
@@ -130,13 +96,11 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
     return (
         <div className="mobile-modal-overlay">
             <div className="mobile-modal-content">
-                {/* Header */}
                 <div className="modal-header">
                     <h3>📸 Capturar Imagen</h3>
                     <button className="close-btn" onClick={onClose}>✕</button>
                 </div>
 
-                {/* Botón de cámara */}
                 {!capturedImage && (
                     <div className="camera-section">
                         <button className="camera-btn" onClick={openNativeCamera}>
@@ -146,20 +110,16 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
                     </div>
                 )}
 
-                {/* Preview de imagen */}
                 {capturedImage && (
                     <div className="image-preview">
                         <img 
                             src={URL.createObjectURL(capturedImage)} 
                             alt="Capturada" 
                         />
-                        <p className="image-size">
-                            ✅ Imagen lista para subir
-                        </p>
+                        <p className="image-size">✅ Imagen lista para subir</p>
                     </div>
                 )}
 
-                {/* Formulario de etiquetas MEJORADO */}
                 <div className="tagging-form">
                     <div className="form-group">
                         <label>🏗️ Nivel</label>
@@ -213,14 +173,12 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
                     </div>
                 </div>
 
-                {/* Información de ubicación */}
                 <div className="location-info">
                     <h4>📍 Ubicación Seleccionada</h4>
                     <p>Lat: {position?.lat.toFixed(6)}</p>
                     <p>Lng: {position?.lng.toFixed(6)}</p>
                 </div>
 
-                {/* Botones de acción */}
                 <div className="action-buttons">
                     <button className="btn-cancel" onClick={onClose}>
                         Cancelar
