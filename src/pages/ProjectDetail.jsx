@@ -211,13 +211,13 @@ const ProjectDetail = () => {
     let csv = 'Nombre de Imagen;X;Y;Z;URL Imagen\n';
     
     photosWithCoords.forEach(photo => {
-      const x = (parseFloat(photo.latitude) / 100000) || 0;
-      const y = (parseFloat(photo.longitude) / 100000) || 0;
+      const x = (parseFloat(photo.latitude) / 1) || 0;
+      const y = (parseFloat(photo.longitude) / 1) || 0;
       
       let z = 0;
       const zMatch = photo.description?.match(/z:\s*([-\d.,]+)/i);
       if (zMatch) {
-        z = (parseFloat(zMatch[1]) / 100000) || 0;
+        z = (parseFloat(zMatch[1]) / 1) || 0;
       }
       
       const url = `https://photosite360-frontend.onrender.com/projects/${id}/view/${photo.id}`;
