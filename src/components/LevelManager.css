@@ -1,0 +1,92 @@
+.level-manager {
+    max-width: 800px;
+    max-height: 90vh;
+}
+
+.import-export-section,
+.add-level-section,
+.levels-list-section {
+    margin-bottom: 25px;
+    padding: 15px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.import-export-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.add-level-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.levels-table {
+    margin-top: 10px;
+}
+
+.table-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 10px;
+    padding: 10px;
+    background: #f8fafc;
+    font-weight: bold;
+    border-radius: 6px;
+}
+
+.table-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 10px;
+    padding: 10px;
+    border-bottom: 1px solid #e2e8f0;
+    align-items: center;
+}
+
+.table-row input, .table-row select {
+    padding: 6px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+}
+
+.z-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.relative-z-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.z-info {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.touch-input.small {
+    width: 80px;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: #3b82f6;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 5px 0;
+    font-size: 0.9rem;
+}
+
+.btn-link:hover {
+    color: #1d4ed8;
+}

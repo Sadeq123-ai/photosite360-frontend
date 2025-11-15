@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './EnhancedMapView.css';
 import MobileCaptureModal from './MobileCaptureModal';
+import LevelManager from './LevelManager';
 
 // Fix para iconos de Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -43,6 +44,8 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
   const [showFileImport, setShowFileImport] = useState(false);
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [selectedImageForMap, setSelectedImageForMap] = useState(null);
+  const [levels, setLevels] = useState([]);
+  const [showLevelManager, setShowLevelManager] = useState(false);
 
   // Referencias para las capas base
   const baseLayersRef = useRef({});
@@ -149,51 +152,128 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
     showNotification('📸 Imagen seleccionada. Haz clic en el mapa para colocarla');
   }, [showNotification]);
 
-  // ✅ FUNCIÓN: Colocar imagen en mapa al hacer click
+  // ✅ FUNCIÓN: Convertir coordenadas reales a coordenadas de proyecto
+  const convertRealToProjectCoords = useCallback((lat, lng, rotation = projectRotation) => {
+    if (!projectOrigin) return { x: 0, y: 0 };
+
+    const deltaLat = lat - projectOrigin[0];
+    const deltaLng = lng - projectOrigin[1];
+
+    const angleRad = (rotation * Math.PI) / 180;
+    const cosAngle = Math.cos(angleRad);
+    const sinAngle = Math.sin(angleRad);
+
+    // Rotar inversamente
+    const x = (deltaLng * cosAngle - deltaLat * sinAngle) * 100000;
+    const y = (deltaLng * sinAngle + deltaLat * cosAngle) * 100000;
+
+    return { x: Math.round(x), y: Math.round(y) };
+  }, [projectOrigin, projectRotation]);
+
+  // ✅ FUNCIÓN CORREGIDA: Colocar imagen en mapa con etiquetas
   const handlePlaceImageOnMap = useCallback(async (e) => {
     if (!selectedImageForMap) return;
 
     const { lat, lng } = e.latlng;
     
+    // ✅ ABRIR MODAL DE ETIQUETAS (igual que en móvil)
+    setMobileCapturePosition({ lat, lng });
+    setShowMobileCapture(true);
+    
+  }, [selectedImageForMap]);
+
+  // ✅ FUNCIÓN CORREGIDA: Guardar captura (móvil Y portátil)
+  const handleMobileCaptureSave = useCallback(async (imageData) => {
     try {
-      // Subir imagen a Cloudinary
-      const formData = new FormData();
-      formData.append('file', selectedImageForMap);
-      formData.append('upload_preset', 'photosite360');
-
-      const cloudinaryResponse = await fetch('https://api.cloudinary.com/v1_1/dryuzad8w/image/upload', {
-        method: 'POST',
-        body: formData
-      });
+      console.log('💾 Guardando imagen con coordenadas:', imageData);
       
-      const cloudinaryData = await cloudinaryResponse.json();
+      // ✅ CALCULAR COORDENADAS DEL PROYECTO
+      const projectCoords = convertRealToProjectCoords(
+        imageData.latitude, 
+        imageData.longitude
+      );
+      
+      // ✅ SI ES PORTÁTIL: Subir a Cloudinary
+      if (selectedImageForMap && !imageData.file) {
+        const formData = new FormData();
+        formData.append('file', selectedImageForMap);
+        formData.append('upload_preset', 'photosite360');
 
-      if (cloudinaryData.secure_url) {
-        // Preparar datos para guardar
-        const imageData = {
-          file: selectedImageForMap,
-          url: cloudinaryData.secure_url,
-          latitude: lat,
-          longitude: lng,
-          title: `Imagen ${new Date().toLocaleString()}`,
-          filename: selectedImageForMap.name,
-          uploaded_at: new Date().toISOString(),
-          type: 'normal'
-        };
+        const cloudinaryResponse = await fetch('https://api.cloudinary.com/v1_1/dryuzad8w/image/upload', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const cloudinaryData = await cloudinaryResponse.json();
 
-        // Llamar función padre para guardar
-        if (onPhotoCapture) {
-          await onPhotoCapture(imageData);
+        if (cloudinaryData.secure_url) {
+          imageData = {
+            ...imageData,
+            file: selectedImageForMap,
+            url: cloudinaryData.secure_url,
+            latitude: mobileCapturePosition.lat,
+            longitude: mobileCapturePosition.lng,
+            // ✅ AÑADIR COORDENADAS DEL PROYECTO
+            projectX: projectCoords.x,
+            projectY: projectCoords.y,
+            projectZ: imageData.finalZ || 0,
+            filename: selectedImageForMap.name,
+            uploaded_at: new Date().toISOString(),
+            type: 'normal',
+            // ✅ MARCADOR EDITABLE
+            editable: true
+          };
         }
-
-        showNotification('✅ Imagen colocada en el mapa y guardada en galería');
-        setSelectedImageForMap(null);
       }
+
+      // ✅ AÑADIR COORDENADAS A TODAS LAS IMÁGENES
+      imageData = {
+        ...imageData,
+        projectX: projectCoords.x,
+        projectY: projectCoords.y,
+        projectZ: imageData.finalZ || 0,
+        editable: true
+      };
+
+      if (onPhotoCapture) {
+        await onPhotoCapture(imageData);
+      }
+      
+      showNotification(`✅ Imagen guardada - X:${projectCoords.x}, Y:${projectCoords.y}, Z:${imageData.finalZ || 0}`);
+      setShowMobileCapture(false);
+      setSelectedImageForMap(null);
+      
     } catch (error) {
-      console.error('Error colocando imagen en mapa:', error);
-      showNotification('❌ Error al colocar imagen', 'error');
+      console.error('❌ Error guardando imagen:', error);
+      showNotification('❌ Error al guardar la imagen', 'error');
     }
-  }, [selectedImageForMap, onPhotoCapture, showNotification]);
+  }, [onPhotoCapture, showNotification, selectedImageForMap, mobileCapturePosition, convertRealToProjectCoords]);
+
+  // ✅ FUNCIÓN: Hacer marcador editable/movible
+  const makeMarkerEditable = useCallback((marker, photo) => {
+    if (!photo.editable) return;
+
+    marker.dragging?.enable();
+    
+    marker.on('dragend', function(e) {
+      const newLatLng = e.target.getLatLng();
+      const newCoords = convertRealToProjectCoords(newLatLng.lat, newLatLng.lng);
+      
+      showNotification(`📍 Marcador movido - Nuevas coord: X:${newCoords.x}, Y:${newCoords.y}`);
+      
+      // ✅ ACTUALIZAR COORDENADAS EN LA BASE DE DATOS
+      if (onPhotoCapture) {
+        onPhotoCapture({
+          ...photo,
+          latitude: newLatLng.lat,
+          longitude: newLatLng.lng,
+          projectX: newCoords.x,
+          projectY: newCoords.y,
+          updatePosition: true
+        });
+      }
+    });
+  }, [convertRealToProjectCoords, showNotification, onPhotoCapture]);
 
   // ✅ FUNCIÓN ÚNICA: Manejar click en el mapa
   const handleMapClick = useCallback((e) => {
@@ -239,7 +319,7 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
     ];
   }, [projectOrigin, projectRotation]);
 
-  // Actualizar marcadores
+  // ✅ FUNCIÓN COMPLETA CORREGIDA: Actualizar marcadores
   const updateMarkers = useCallback(() => {
     if (!mapInstance.current) return;
 
@@ -313,6 +393,9 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
     photos.forEach((photo, index) => {
       if (!photo.latitude || !photo.longitude) return;
 
+      // ✅ DECLARAR isNormalImage FUERA del try para evitar errores
+      const isNormalImage = photo.type === 'normal';
+      
       try {
         let photoLatLng;
         
@@ -325,7 +408,6 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
           photoLatLng = convertToRealLatLng(photo.latitude, photo.longitude, currentRotation);
         }
         
-        const isNormalImage = photo.type === 'normal';
         const markerNumber = index + 1;
         
         const photoIcon = L.divIcon({
@@ -344,6 +426,7 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
           ? photo.url 
           : `https://web-production-51970.up.railway.app${photo.url || ''}`;
 
+        // ✅ AHORA isNormalImage ESTÁ DISPONIBLE
         const popupContent = isNormalImage ? `
           <div class="photo-popup">
             <h4>🖼️ ${photo.title || 'Imagen'}</h4>
@@ -380,14 +463,23 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
           </div>
         `;
 
-        const marker = L.marker(photoLatLng, { icon: photoIcon })
-          .bindPopup(popupContent)
-          .addTo(mapInstance.current);
+        const marker = L.marker(photoLatLng, { 
+          icon: photoIcon,
+          draggable: photo.editable || false  // ✅ HACER EDITABLE SI CORRESPONDE
+        })
+        .bindPopup(popupContent)
+        .addTo(mapInstance.current);
+
+        // ✅ HACER MOVIBLE SI ES EDITABLE
+        if (photo.editable) {
+          makeMarkerEditable(marker, photo);
+        }
 
         markersRef.current.push(marker);
 
       } catch (error) {
-        console.error('Error creando marcador:', error);
+        console.error('Error creando marcador para foto:', error, photo);
+        // Continuar con la siguiente foto sin bloquear toda la función
       }
     });
 
@@ -396,7 +488,7 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
       const group = L.featureGroup(markersRef.current);
       mapInstance.current.fitBounds(group.getBounds().pad(0.1));
     }
-  }, [photos, project, projectOrigin, projectRotation, isRotating, tempRotation, mapMode, convertToRealLatLng]);
+  }, [photos, project, projectOrigin, projectRotation, isRotating, tempRotation, mapMode, convertToRealLatLng, makeMarkerEditable]);
 
   // Efecto principal: Inicializar mapa
   useEffect(() => {
@@ -491,24 +583,6 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
       showNotification('❌ Geolocalización no soportada', 'error');
     }
   }, [showNotification]);
-
-  // Función para captura móvil
-  const handleMobileCaptureSave = useCallback(async (imageData) => {
-    try {
-      console.log('💾 Guardando imagen móvil:', imageData);
-      
-      if (onPhotoCapture) {
-        await onPhotoCapture(imageData);
-      }
-      
-      showNotification('✅ Imagen capturada y guardada en la nube');
-      setShowMobileCapture(false);
-      
-    } catch (error) {
-      console.error('❌ Error guardando imagen móvil:', error);
-      showNotification('❌ Error al guardar la imagen', 'error');
-    }
-  }, [onPhotoCapture, showNotification]);
 
   // Funciones de rotación
   const rotateProject = useCallback((degrees) => {
@@ -654,6 +728,12 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
             >
               📸 Colocar Imagen
             </button>
+            <button 
+              className="control-btn"
+              onClick={() => setShowLevelManager(true)}
+            >
+              🏗️ Gestionar Niveles
+            </button>
           </div>
         </div>
       </div>
@@ -785,7 +865,12 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
         <MobileCaptureModal
           position={mobileCapturePosition}
           onSave={handleMobileCaptureSave}
-          onClose={() => setShowMobileCapture(false)}
+          onClose={() => {
+            setShowMobileCapture(false);
+            setSelectedImageForMap(null);
+          }}
+          selectedImage={selectedImageForMap}
+          levels={levels}
         />
       )}
 
@@ -846,6 +931,15 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
         </div>
       )}
 
+      {/* ✅ MODAL GESTIÓN DE NIVELES */}
+      {showLevelManager && (
+        <LevelManager
+          projectId={project?.id}
+          onLevelsUpdate={setLevels}
+          onClose={() => setShowLevelManager(false)}
+        />
+      )}
+
       <div className="map-legend">
         <div className="legend-title">Leyenda</div>
         <div className="legend-item">
@@ -863,6 +957,10 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
         <div className="legend-item">
           <div className="legend-color user-pin"></div>
           <span>Tu Ubicación</span>
+        </div>
+        <div className="legend-item">
+          <div className="legend-color editable-pin"></div>
+          <span>Marcadores Editables</span>
         </div>
       </div>
     </div>

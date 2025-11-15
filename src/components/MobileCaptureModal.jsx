@@ -1,27 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import './MobileCaptureModal.css';
 
-const MobileCaptureModal = ({ position, onSave, onClose }) => {
-    const [capturedImage, setCapturedImage] = useState(null);
+const MobileCaptureModal = ({ position, onSave, onClose, selectedImage, levels = [] }) => {
+    const [capturedImage, setCapturedImage] = useState(selectedImage || null);
     const [level, setLevel] = useState('');
     const [room, setRoom] = useState('');
     const [pk, setPk] = useState('');
     const [comment, setComment] = useState('');
     const [availableLevels, setAvailableLevels] = useState([]);
     const [availableRooms, setAvailableRooms] = useState([]);
+    
+    // ✅ NUEVOS ESTADOS PARA SISTEMA Z
+    const [zType, setZType] = useState('absolute'); // 'absolute' o 'relative'
+    const [customZ, setCustomZ] = useState('');
+    const [showLevelManager, setShowLevelManager] = useState(false);
 
-    // Cargar etiquetas al iniciar
+    // ✅ CARGAR ETIQUETAS EXISTENTES
     useEffect(() => {
         loadAvailableTags();
     }, []);
 
     const loadAvailableTags = () => {
         try {
-            const levels = ['', 'P00', 'P01', 'P02', 'P03', 'P04', 'S01', 'S02', 'S03'];
-            const rooms = ['', 'Salon', 'Cocina', 'Baño', 'Dormitorio', 'Oficina', 'Terraza', 'Garaje', 'Fachada', 'Jardin', 'Piscina'];
+            // Si tenemos niveles desde props, usarlos, sino usar predefinidos
+            if (levels && levels.length > 0) {
+                const levelNames = ['', ...levels.map(l => l.name)];
+                setAvailableLevels(levelNames);
+            } else {
+                // Etiquetas predefinidas fijas
+                const defaultLevels = ['', 'P00', 'P01', 'P02', 'P03', 'P04', 'S01', 'S02', 'S03'];
+                setAvailableLevels(defaultLevels);
+            }
             
-            setAvailableLevels(levels);
+            const rooms = ['', 'Salon', 'Cocina', 'Baño', 'Dormitorio', 'Oficina', 'Terraza', 'Garaje', 'Fachada', 'Jardin', 'Piscina'];
             setAvailableRooms(rooms);
+            
         } catch (error) {
             console.error('Error cargando etiquetas:', error);
             setAvailableLevels(['', 'P00', 'P01', 'P02']);
@@ -29,7 +42,44 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
         }
     };
 
+    // ✅ Obtener altura Z basada en nivel seleccionado
+    const getZFromLevel = () => {
+        if (!level) return 0;
+        
+        // Buscar en niveles prop
+        if (levels && levels.length > 0) {
+            const levelConfig = levels.find(l => l.name === level);
+            return levelConfig ? levelConfig.height : 0;
+        }
+        
+        // Valores predefinidos por defecto
+        const predefinedZ = {
+            'P00': 0, 'P01': 3, 'P02': 6, 'P03': 9, 'P04': 12,
+            'S01': -3, 'S02': -6, 'S03': -9
+        };
+        
+        return predefinedZ[level] || 0;
+    };
+
+    // ✅ Calcular Z final
+    const calculateFinalZ = () => {
+        if (zType === 'absolute') {
+            return parseFloat(customZ) || 0;
+        } else {
+            const baseZ = getZFromLevel();
+            const relativeZ = parseFloat(customZ) || 0;
+            return baseZ + relativeZ;
+        }
+    };
+
+    // ✅ ABRIR CÁMARA SOLO EN MÓVIL
     const openNativeCamera = () => {
+        // Solo en móvil
+        if (!/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            alert('Esta función solo está disponible en dispositivos móviles');
+            return;
+        }
+
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
@@ -47,34 +97,43 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
         input.click();
     };
 
-    const uploadToCloudinary = async (file) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'photosite360');
-
-        try {
-            const response = await fetch('https://api.cloudinary.com/v1_1/dryuzad8w/image/upload', {
-                method: 'POST',
-                body: formData
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Error subiendo a Cloudinary:', error);
-            return null;
-        }
-    };
-
+    // ✅ GUARDAR CON ETIQUETAS Y COORDENADAS Z
     const handleSave = async () => {
-        if (!capturedImage) {
-            alert('Primero captura una imagen');
+        if (!capturedImage && !selectedImage) {
+            alert('Primero selecciona o captura una imagen');
             return;
         }
 
-        const cloudinaryResult = await uploadToCloudinary(capturedImage);
+        const imageFile = capturedImage || selectedImage;
+        if (!imageFile) return;
+
+        // Subir imagen a Cloudinary
+        const uploadToCloudinary = async (file) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', 'photosite360');
+
+            try {
+                const response = await fetch('https://api.cloudinary.com/v1_1/dryuzad8w/image/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Error subiendo a Cloudinary:', error);
+                return null;
+            }
+        };
+
+        const cloudinaryResult = await uploadToCloudinary(imageFile);
         
         if (cloudinaryResult) {
+            // ✅ CALCULAR Z FINAL
+            const finalZ = calculateFinalZ();
+            
+            // Preparar datos para guardar
             const imageData = {
-                file: capturedImage,
+                file: imageFile,
                 url: cloudinaryResult.secure_url,
                 latitude: position.lat,
                 longitude: position.lng,
@@ -82,13 +141,20 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
                 room: room,
                 pk: pk,
                 comment: comment,
-                filename: capturedImage.name,
+                filename: imageFile.name,
                 uploaded_at: new Date().toISOString(),
                 title: `Imagen ${new Date().toLocaleString()}`,
                 tags: [level, room, pk].filter(Boolean).join(', '),
-                type: 'normal'
+                type: 'normal',
+                // ✅ NUEVOS CAMPOS PARA COORDENADAS Z
+                finalZ: finalZ,
+                zType: zType,
+                customZ: customZ,
+                // ✅ INDICAR QUE ES EDITABLE/MOVIBLE
+                editable: true
             };
 
+            // Llamar función padre para guardar
             onSave(imageData);
         }
     };
@@ -96,12 +162,14 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
     return (
         <div className="mobile-modal-overlay">
             <div className="mobile-modal-content">
+                {/* Header */}
                 <div className="modal-header">
-                    <h3>📸 Capturar Imagen</h3>
+                    <h3>📸 {selectedImage ? 'Colocar Imagen en Mapa' : 'Capturar Imagen'}</h3>
                     <button className="close-btn" onClick={onClose}>✕</button>
                 </div>
 
-                {!capturedImage && (
+                {/* ✅ BOTÓN DE CÁMARA SOLO SI NO HAY IMAGEN SELECCIONADA */}
+                {!capturedImage && !selectedImage && (
                     <div className="camera-section">
                         <button className="camera-btn" onClick={openNativeCamera}>
                             📷 Abrir Cámara
@@ -110,17 +178,23 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
                     </div>
                 )}
 
-                {capturedImage && (
+                {/* ✅ PREVIEW DE IMAGEN */}
+                {(capturedImage || selectedImage) && (
                     <div className="image-preview">
                         <img 
-                            src={URL.createObjectURL(capturedImage)} 
-                            alt="Capturada" 
+                            src={URL.createObjectURL(capturedImage || selectedImage)} 
+                            alt="Imagen seleccionada" 
                         />
-                        <p className="image-size">✅ Imagen lista para subir</p>
+                        <p className="image-size">
+                            ✅ Imagen lista para guardar con etiquetas
+                        </p>
                     </div>
                 )}
 
+                {/* ✅ FORMULARIO DE ETIQUETAS (SIEMPRE VISIBLE) */}
                 <div className="tagging-form">
+                    <h4>🏷️ Información de la Imagen</h4>
+                    
                     <div className="form-group">
                         <label>🏗️ Nivel</label>
                         <select 
@@ -134,6 +208,54 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
                                 </option>
                             ))}
                         </select>
+                    </div>
+
+                    {/* ✅ NUEVO: SISTEMA DE COORDENADA Z */}
+                    <div className="form-group">
+                        <label>📐 Sistema de Coordenada Z</label>
+                        <div className="z-controls">
+                            <select 
+                                value={zType} 
+                                onChange={(e) => setZType(e.target.value)}
+                                className="touch-select"
+                            >
+                                <option value="absolute">Cota Absoluta</option>
+                                <option value="relative">Cota Relativa al Nivel</option>
+                            </select>
+                            
+                            {zType === 'absolute' ? (
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={customZ}
+                                    onChange={(e) => setCustomZ(e.target.value)}
+                                    placeholder="Z absoluto (metros)"
+                                    className="touch-input"
+                                />
+                            ) : (
+                                <div className="relative-z-controls">
+                                    <div className="z-info">
+                                        <span>Nivel {level}: {getZFromLevel()}m + </span>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={customZ}
+                                            onChange={(e) => setCustomZ(e.target.value)}
+                                            placeholder="ΔZ adicional"
+                                            className="touch-input small"
+                                        />
+                                        <span> = {calculateFinalZ().toFixed(2)}m</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <button 
+                            type="button"
+                            className="btn-link"
+                            onClick={() => setShowLevelManager(true)}
+                        >
+                            ⚙️ Gestionar Niveles
+                        </button>
                     </div>
 
                     <div className="form-group">
@@ -173,12 +295,15 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
                     </div>
                 </div>
 
+                {/* ✅ INFORMACIÓN DE UBICACIÓN */}
                 <div className="location-info">
                     <h4>📍 Ubicación Seleccionada</h4>
                     <p>Lat: {position?.lat.toFixed(6)}</p>
                     <p>Lng: {position?.lng.toFixed(6)}</p>
+                    <p>Z calculado: <strong>{calculateFinalZ().toFixed(2)}m</strong></p>
                 </div>
 
+                {/* ✅ BOTONES DE ACCIÓN */}
                 <div className="action-buttons">
                     <button className="btn-cancel" onClick={onClose}>
                         Cancelar
@@ -186,9 +311,9 @@ const MobileCaptureModal = ({ position, onSave, onClose }) => {
                     <button 
                         className="btn-save" 
                         onClick={handleSave}
-                        disabled={!capturedImage}
+                        disabled={!capturedImage && !selectedImage}
                     >
-                        ✅ Guardar en Nube
+                        ✅ Guardar en Mapa
                     </button>
                 </div>
             </div>

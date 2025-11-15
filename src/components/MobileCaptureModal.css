@@ -196,3 +196,107 @@ textarea {
         padding: 12px 20px;
     }
 }
+/* Mejoras para el formulario de etiquetas */
+.tagging-form h4 {
+  margin: 0 0 15px 0;
+  color: #1e293b;
+  font-size: 1.1rem;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 8px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.touch-select, .touch-input, textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: white;
+  transition: border-color 0.2s;
+}
+
+.touch-select:focus, .touch-input:focus, textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+/* Información de ubicación mejorada */
+.location-info {
+  background: #f8fafc;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 15px 0;
+  border-left: 4px solid #3b82f6;
+}
+
+.location-info h4 {
+  margin: 0 0 8px 0;
+  color: #1e293b;
+  font-size: 1rem;
+}
+
+.location-info p {
+  margin: 4px 0;
+  font-family: monospace;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+/* Controles Z */
+.z-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.relative-z-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.z-info {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9rem;
+}
+
+.touch-input.small {
+    width: 80px;
+    padding: 6px;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: #3b82f6;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 5px 0;
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
+.btn-link:hover {
+    color: #1d4ed8;
+}

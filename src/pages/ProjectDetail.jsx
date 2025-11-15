@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import CameraMap3D from '../components/CameraMap3D';
@@ -67,6 +67,7 @@ const ProjectDetail = () => {
     }
   };
 
+  // ✅ FUNCIÓN: Subir fotos 360° + archivos TXT
   const handle360Upload = async (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -76,6 +77,7 @@ const ProjectDetail = () => {
     const images = [];
     const txtFiles = {};
 
+    // Separar imágenes y archivos TXT
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const fileName = file.name;
@@ -92,6 +94,7 @@ const ProjectDetail = () => {
     const uploadedPhotos = [];
     
     try {
+      // Subir imágenes primero
       for (const { file, baseName } of images) {
         const formData = new FormData();
         formData.append('file', file);
@@ -112,6 +115,7 @@ const ProjectDetail = () => {
         });
       }
 
+      // Subir coordenadas TXT después
       for (const photoData of uploadedPhotos) {
         if (txtFiles[photoData.baseName]) {
           const txtFormData = new FormData();
@@ -135,6 +139,7 @@ const ProjectDetail = () => {
     await fetchPhotos();
   };
 
+  // ✅ FUNCIÓN: Subir imágenes normales
   const handleNormalImageUpload = async (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -231,6 +236,7 @@ const ProjectDetail = () => {
     toast.success('Archivo CSV exportado');
   };
 
+  // ✅ FUNCIÓN: Manejar captura de imágenes desde el mapa
   const handlePhotoCapture = async (photoData) => {
     try {
       console.log('📸 Captura móvil:', photoData);
@@ -244,9 +250,21 @@ const ProjectDetail = () => {
       formData.append('pk', photoData.pk || '');
       formData.append('comment', photoData.comment || '');
       
+      // Coordenadas geográficas
       if (photoData.latitude && photoData.longitude) {
         formData.append('latitude', photoData.latitude.toString());
         formData.append('longitude', photoData.longitude.toString());
+      }
+      
+      // Coordenadas del proyecto (X,Y,Z)
+      if (photoData.projectX !== undefined) {
+        formData.append('project_x', photoData.projectX.toString());
+      }
+      if (photoData.projectY !== undefined) {
+        formData.append('project_y', photoData.projectY.toString());
+      }
+      if (photoData.projectZ !== undefined) {
+        formData.append('project_z', photoData.projectZ.toString());
       }
 
       await api.post(`/projects/${id}/gallery/upload`, formData, {
@@ -262,6 +280,7 @@ const ProjectDetail = () => {
     }
   };
 
+  // ✅ FUNCIÓN: Combinar todas las fotos para el mapa
   const getAllPhotosForMap = () => {
     const photos360 = photos.map(photo => ({ ...photo, type: '360' }));
     const normalPhotos = normalImages.map(img => ({ ...img, type: 'normal' }));
@@ -284,11 +303,13 @@ const ProjectDetail = () => {
       <Navbar />
       
       <div className="container project-detail-content">
+        {/* Botón volver */}
         <button className="btn-back" onClick={() => navigate('/projects')}>
           <ArrowLeft size={20} />
           Volver a proyectos
         </button>
 
+        {/* Header del proyecto */}
         <div className="project-detail-header">
           <div>
             <h1>{project?.name}</h1>
@@ -296,48 +317,58 @@ const ProjectDetail = () => {
             {project?.location && <p className="project-loc">📍 {project.location}</p>}
           </div>
 
+          {/* Botones de acción */}
           <div className="project-actions">
-  {photosWithCoords.length > 0 && (
-    <>
-      <button className="btn btn-secondary" onClick={exportToCSV}>
-        <Download size={20} />
-        Exportar CSV
-      </button>
-      <button 
-        className="btn btn-secondary" 
-        onClick={() => setShowEnhancedMap(true)}
-      >
-        <Map size={20} />
-        Mapa Avanzado
-      </button>
-    </>
-  )}
-  
-  {/* ✅ SOLO MANTENER ESTE BOTÓN - EL QUE FUNCIONA */}
-  <label className="btn btn-success upload-btn">
-    <ImageIcon size={20} />
-    {uploading ? 'Subiendo...' : '🖼️ Subir Imágenes Normales'}
-    <input
-      type="file"
-      multiple
-      accept="image/*"
-      onChange={handleNormalImageUpload}
-      disabled={uploading}
-      style={{ display: 'none' }}
-    />
-  </label>
+            {photosWithCoords.length > 0 && (
+              <>
+                <button className="btn btn-secondary" onClick={exportToCSV}>
+                  <Download size={20} />
+                  Exportar CSV
+                </button>
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={() => setShowEnhancedMap(true)}
+                >
+                  <Map size={20} />
+                  Mapa Avanzado
+                </button>
+              </>
+            )}
+            
+            {/* Botón importar GIS/CAD */}
+            <button 
+              className="btn btn-secondary"
+              onClick={() => setShowFileImport(true)}
+            >
+              🗂️ Importar GIS/CAD
+            </button>
+            
+            {/* Botón subir imágenes normales */}
+            <label className="btn btn-success upload-btn">
+              <ImageIcon size={20} />
+              {uploading ? 'Subiendo...' : '🖼️ Subir Imágenes Normales'}
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleNormalImageUpload}
+                disabled={uploading}
+                style={{ display: 'none' }}
+              />
+            </label>
 
-  {/* ✅ BOTÓN GALERÍA */}
-  <button 
-    className="btn btn-info"
-    onClick={() => navigate(`/projects/${id}/gallery`)}
-  >
-    <Eye size={20} />
-    Ver Galería Imágenes
-  </button>
-</div>
+            {/* Botón ver galería */}
+            <button 
+              className="btn btn-info"
+              onClick={() => navigate(`/projects/${id}/gallery`)}
+            >
+              <Eye size={20} />
+              Ver Galería Imágenes
+            </button>
+          </div>
         </div>
 
+        {/* Estadísticas */}
         <div className="project-stats">
           <div className="stat-card">
             <div className="stat-number">{photos.length}</div>
@@ -353,6 +384,7 @@ const ProjectDetail = () => {
           </div>
         </div>
 
+        {/* Vista 3D - Solo si hay fotos con coordenadas */}
         {photosWithCoords.length > 0 && (
           <div className="viewer-3d-section">
             <div className="viewer-3d-header">
@@ -376,6 +408,7 @@ const ProjectDetail = () => {
           </div>
         )}
 
+        {/* Lista de fotos 360° */}
         <div className="photos-section">
           <h2>Fotos 360° del Proyecto ({photos.length})</h2>
           
@@ -383,6 +416,7 @@ const ProjectDetail = () => {
             <div className="photos-grid">
               {photos.map(photo => (
                 <div key={photo.id} className="photo-card">
+                  {/* Botón eliminar */}
                   <button
                     className="btn-delete-photo"
                     onClick={(e) => {
@@ -394,6 +428,7 @@ const ProjectDetail = () => {
                     <Trash2 size={18} />
                   </button>
                   
+                  {/* Imagen con overlay */}
                   <div className="photo-image-container" onClick={() => handlePhotoClick(photo)}>
                     <img 
                       src={photo.url.startsWith('http') ? photo.url : `http://localhost:8001${photo.url}`}
@@ -405,6 +440,8 @@ const ProjectDetail = () => {
                       <span>Ver en 360°</span>
                     </div>
                   </div>
+                  
+                  {/* Información de la foto */}
                   <div className="photo-info">
                     <h4>{photo.title}</h4>
                     {photo.latitude && photo.longitude && (
@@ -445,6 +482,7 @@ const ProjectDetail = () => {
         </div>
       </div>
 
+      {/* Modal mapa 3D en pantalla completa */}
       {show3DMapFullscreen && (
         <CameraMap3D
           photos={photos}
@@ -453,6 +491,7 @@ const ProjectDetail = () => {
         />
       )}
 
+      {/* Modal mapa avanzado */}
       {showEnhancedMap && (
         <EnhancedMapView
           photos={getAllPhotosForMap()}
@@ -462,6 +501,7 @@ const ProjectDetail = () => {
         />
       )}
 
+      {/* Modal importar GIS/CAD */}
       {showFileImport && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -475,6 +515,7 @@ const ProjectDetail = () => {
               <ul>
                 <li>📁 KML/KMZ - Datos de Google Earth</li>
                 <li>📐 DWG - Planos de AutoCAD</li>
+                <li>🗺️ Shapefile - Datos GIS profesionales</li>
               </ul>
               <button 
                 className="btn btn-primary"
