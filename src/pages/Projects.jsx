@@ -1,9 +1,11 @@
 ﻿import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
+import PendingInvitations from '../components/PendingInvitations'
+import InviteModal from '../components/InviteModal'
 import api from '../config/axios'
 import toast from 'react-hot-toast'
-import { Plus, Search, Trash2, FolderOpen, X } from 'lucide-react'
+import { Plus, Search, Trash2, FolderOpen, X, Users } from 'lucide-react'
 import './Projects.css'
 
 const Projects = () => {
@@ -12,6 +14,7 @@ const Projects = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [showGlobalInviteModal, setShowGlobalInviteModal] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -36,12 +39,23 @@ const Projects = () => {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('¿Estás seguro de eliminar este proyecto?')) return
+    if (!confirm('¿Estás seguro de eliminar este proyecto? Se eliminarán TODOS los archivos asociados en Cloudinary.')) return
 
     try {
-      await api.delete(`/projects/${id}`)
+      const response = await api.delete(`/projects/${id}`)
+      
+      // Mostrar información de la eliminación
+      if (response.data.cloudinary_cleanup) {
+        const cleanup = response.data.cloudinary_cleanup
+        toast.success(
+          `✅ Proyecto eliminado: ${cleanup.deleted_count} archivos eliminados de Cloudinary`,
+          { duration: 5000 }
+        )
+      } else {
+        toast.success('Proyecto eliminado')
+      }
+      
       setProjects(projects.filter(p => p.id !== id))
-      toast.success('Proyecto eliminado')
     } catch (error) {
       console.error('Error deleting project:', error)
       toast.error('Error al eliminar proyecto')
@@ -94,11 +108,27 @@ const Projects = () => {
             <h1>Mis Proyectos</h1>
             <p>Gestiona tus proyectos de construcción</p>
           </div>
-          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-            <Plus size={20} />
-            Nuevo Proyecto
-          </button>
+          <div className="projects-header-actions">
+            <button 
+              className="btn btn-success"
+              onClick={() => setShowGlobalInviteModal(true)}
+              title="Invitar colaborador global"
+            >
+              <Users size={20} />
+              Invitar Colaborador Global
+            </button>
+            <button 
+              className="btn btn-primary" 
+              onClick={() => setShowModal(true)}
+            >
+              <Plus size={20} />
+              Nuevo Proyecto
+            </button>
+          </div>
         </div>
+
+        {/* Invitaciones pendientes */}
+        <PendingInvitations />
 
         <div className="search-bar">
           <Search size={20} />
@@ -129,7 +159,7 @@ const Projects = () => {
                       handleDelete(project.id);
                     }}
                     className="btn-icon-danger"
-                    title="Eliminar proyecto"
+                    title="Eliminar proyecto y todos sus archivos"
                   >
                     <Trash2 size={18} />
                   </button>
@@ -173,6 +203,7 @@ const Projects = () => {
         )}
       </div>
 
+      {/* Modal crear proyecto */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -245,6 +276,18 @@ const Projects = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Modal invitación global */}
+      {showGlobalInviteModal && (
+        <InviteModal
+          isGlobal={true}
+          onClose={() => setShowGlobalInviteModal(false)}
+          onInviteSent={() => {
+            setShowGlobalInviteModal(false);
+            toast.success('Invitación enviada exitosamente');
+          }}
+        />
       )}
     </div>
   )

@@ -330,3 +330,99 @@
   gap: 12px;
   flex-wrap: wrap;
 }
+/* Estilos para botones de acción del proyecto */
+.project-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.project-actions .btn {
+  white-space: nowrap;
+}
+
+/* Botón warning para invitar */
+.btn-warning {
+  background: #f59e0b;
+  color: white;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.btn-warning:hover {
+  background: #d97706;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+/* Botón info para galería */
+.btn-info {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.btn-info:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Mejorar tooltips de botones */
+.project-actions .btn {
+  position: relative;
+}
+
+.project-actions .btn:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 10;
+  margin-bottom: 5px;
+  pointer-events: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .project-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .project-actions .btn,
+  .project-actions .upload-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Estilos para modal de importación */
+.modal-body ul {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+}
+
+.modal-body ul li {
+  padding: 10px;
+  margin: 5px 0;
+  background: #f3f4f6;
+  border-radius: 6px;
+  font-size: 14px;
+}

@@ -1,0 +1,147 @@
+.pending-invitations-container {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.pending-invitations-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  color: #856404;
+}
+
+.pending-invitations-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.invitations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.invitation-card {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.invitation-icon {
+  flex-shrink: 0;
+}
+
+.invitation-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.invitation-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.invitation-title h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #2c3e50;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+
+.badge-global {
+  background: #28a745;
+  color: white;
+}
+
+.badge-project {
+  background: #007bff;
+  color: white;
+}
+
+.invitation-details p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #2c3e50;
+}
+
+.invitation-message {
+  font-style: italic;
+  color: #6c757d !important;
+  padding: 8px;
+  background: #f8f9fa;
+  border-left: 3px solid #007bff;
+  margin: 8px 0 !important;
+}
+
+.invitation-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px !important;
+  color: #6c757d !important;
+  margin-top: 8px !important;
+}
+
+.invitation-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.btn-success {
+  background: #28a745;
+  color: white;
+  border: none;
+}
+
+.btn-success:hover {
+  background: #218838;
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+  border: none;
+}
+
+.btn-danger:hover {
+  background: #c82333;
+}
+
+.pending-invitations-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  color: #6c757d;
+}
