@@ -17,7 +17,7 @@ const PublicPhotoView = () => {
     try {
       console.log('🔄 Cargando foto pública ID:', photoId)
       
-      const response = await axios.get(`https://web-production-51970.up.railway.app/api/public/photos/${photoId}`)
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/public/photos/${photoId}`)
       
       console.log('✅ Foto cargada:', response.data)
       setPhoto(response.data)

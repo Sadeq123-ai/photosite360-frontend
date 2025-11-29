@@ -424,7 +424,7 @@ const EnhancedMapView = ({ photos = [], project, onClose, onPhotoCapture }) => {
 
         const imageUrl = photo.url?.startsWith('http') 
           ? photo.url 
-          : `https://web-production-51970.up.railway.app${photo.url || ''}`;
+          : `${import.meta.env.VITE_API_URL}${photo.url || ''}`;
 
         // ✅ AHORA isNormalImage ESTÁ DISPONIBLE
         const popupContent = isNormalImage ? `

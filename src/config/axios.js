@@ -1,12 +1,12 @@
 ﻿import axios from 'axios'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL + '/api',  // ✅ BIEN
-  timeout: 10000,
+  baseURL: import.meta.env.VITE_API_URL + '/api',
+  withCredentials: false, // Importante para CORS
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
   }
-})
+});
 
 // Interceptor para requests
 api.interceptors.request.use(
