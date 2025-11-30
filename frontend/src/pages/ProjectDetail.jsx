@@ -309,6 +309,32 @@ const ProjectDetail = () => {
     }
   };
 
+  // ✅ FUNCIÓN: Sincronizar coordenadas de fotos 360° existentes
+  const handleSync360Coordinates = async () => {
+    if (!confirm('¿Deseas sincronizar las coordenadas de las fotos 360° existentes? Esto calculará coordenadas reales (WGS84, UTM) basándose en la posición del mapa.')) {
+      return;
+    }
+
+    try {
+      toast.loading('Sincronizando coordenadas...', { id: 'sync-coords' });
+
+      const response = await api.post(`/projects/${id}/sync-360-coordinates`);
+
+      toast.success(
+        `✅ ${response.data.message}\n${response.data.synced_count} fotos actualizadas`,
+        { id: 'sync-coords', duration: 4000 }
+      );
+
+      // Recargar fotos para ver los cambios
+      await fetchPhotos();
+
+    } catch (error) {
+      console.error('❌ Error sincronizando coordenadas:', error);
+      const errorMsg = error.response?.data?.detail || 'Error al sincronizar coordenadas';
+      toast.error(errorMsg, { id: 'sync-coords' });
+    }
+  };
+
   // ✅ FUNCIÓN: Combinar todas las fotos para el mapa
   const getAllPhotosForMap = () => {
     const photos360 = photos.map(photo => ({ ...photo, type: '360' }));
@@ -362,8 +388,8 @@ const ProjectDetail = () => {
                   <Download size={20} />
                   Exportar CSV
                 </button>
-                <button 
-                  className="btn btn-secondary" 
+                <button
+                  className="btn btn-secondary"
                   onClick={() => setShowEnhancedMap(true)}
                 >
                   <Map size={20} />
@@ -371,7 +397,18 @@ const ProjectDetail = () => {
                 </button>
               </>
             )}
-            
+
+            {/* Botón sincronizar coordenadas 360° */}
+            {photos.length > 0 && (
+              <button
+                className="btn btn-warning"
+                onClick={handleSync360Coordinates}
+                title="Sincronizar coordenadas de fotos 360° existentes"
+              >
+                🔄 Sincronizar Coordenadas 360°
+              </button>
+            )}
+
             {/* Botón importar GIS/CAD */}
             <button 
               className="btn btn-secondary"
