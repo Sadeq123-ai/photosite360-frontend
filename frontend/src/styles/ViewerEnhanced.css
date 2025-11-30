@@ -1,0 +1,286 @@
+/* ViewerEnhanced.css */
+.viewer-enhanced {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Barra de herramientas */
+.viewer-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background: #2c3e50;
+  color: white;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  z-index: 1000;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.view-mode-selector {
+  display: flex;
+  gap: 5px;
+}
+
+.view-mode-selector button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  background: #34495e;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.view-mode-selector button:hover {
+  background: #4a6278;
+}
+
+.view-mode-selector button.active {
+  background: #3498db;
+  box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toolbar-actions button,
+.toolbar-actions .file-upload-btn {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  background: #27ae60;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.toolbar-actions button:hover,
+.toolbar-actions .file-upload-btn:hover {
+  background: #2ecc71;
+  transform: translateY(-2px);
+}
+
+.capture-btn {
+  background: #e74c3c !important;
+}
+
+.capture-btn:hover {
+  background: #c0392b !important;
+}
+
+.export-btn {
+  background: #9b59b6 !important;
+}
+
+.export-btn:hover {
+  background: #8e44ad !important;
+}
+
+/* Contenedor principal */
+.viewer-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Estilos para el mapa 2D */
+.map-2d-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.map-2d {
+  width: 100%;
+  height: 100%;
+}
+
+.map-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.map-controls button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 5px;
+  background: white;
+  color: #2c3e50;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.map-controls button:hover {
+  background: #3498db;
+  color: white;
+}
+
+.map-legend {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: white;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  z-index: 1000;
+  max-width: 200px;
+}
+
+.map-legend h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #2c3e50;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+/* Marcadores personalizados */
+.custom-marker {
+  background: transparent;
+  border: none;
+}
+
+.marker-pin {
+  width: 30px;
+  height: 30px;
+  background: #e74c3c;
+  border: 3px solid white;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.marker-number {
+  transform: rotate(45deg);
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.user-location-marker {
+  font-size: 18px;
+}
+
+/* Popups del mapa */
+.map-popup {
+  max-width: 250px;
+}
+
+.map-popup h4 {
+  margin: 0 0 10px 0;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.map-popup img {
+  width: 100%;
+  height: auto;
+  border-radius: 5px;
+  margin-bottom: 10px;
+}
+
+.popup-info {
+  font-size: 12px;
+  color: #7f8c8d;
+  margin-bottom: 10px;
+}
+
+.map-popup button {
+  width: 100%;
+  padding: 8px;
+  border: none;
+  border-radius: 3px;
+  background: #3498db;
+  color: white;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.map-popup button:hover {
+  background: #2980b9;
+}
+
+/* Información del proyecto */
+.project-info {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: white;
+  padding: 15px;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  z-index: 1000;
+  max-width: 250px;
+}
+
+.project-info h3 {
+  margin: 0 0 5px 0;
+  color: #2c3e50;
+  font-size: 16px;
+}
+
+.project-info p {
+  margin: 2px 0;
+  font-size: 12px;
+  color: #7f8c8d;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .viewer-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .view-mode-selector {
+    justify-content: center;
+  }
+  
+  .toolbar-actions {
+    justify-content: center;
+  }
+  
+  .project-info {
+    max-width: 200px;
+    font-size: 10px;
+  }
+}
+
+/* Animaciones */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.capture-btn {
+  animation: pulse 2s infinite;
+}

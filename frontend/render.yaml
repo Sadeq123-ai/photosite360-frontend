@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: photosite360-frontend
+    plan: free
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:;"

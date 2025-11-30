@@ -1,0 +1,12 @@
+{
+  "root": "dist/",
+  "clean_urls": false,
+  "routes": {
+    "/**": "index.html"
+  },
+  "headers": {
+    "/**": {
+      "Content-Security-Policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:;"
+    }
+  }
+}
