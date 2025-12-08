@@ -204,28 +204,51 @@ const ProjectDetail = () => {
   };
 
   const exportToCSV = () => {
-    const photosWithCoords = photos.filter(p => p.latitude && p.longitude);
+    // Filtrar fotos con coordenadas (soportar múltiples sistemas)
+    const photosWithCoords = photos.filter(p => {
+      // Coordenadas del proyecto (X, Y)
+      const hasProjectCoords = p.project_x !== undefined && p.project_x !== null &&
+                               p.project_y !== undefined && p.project_y !== null;
+      // Coordenadas geográficas (nuevo sistema)
+      const hasGeoCoords = p.geo_latitude !== undefined && p.geo_latitude !== null &&
+                          p.geo_longitude !== undefined && p.geo_longitude !== null;
+      // Coordenadas legacy
+      const hasLegacyCoords = p.latitude !== undefined && p.latitude !== null &&
+                             p.longitude !== undefined && p.longitude !== null;
+      return hasProjectCoords || hasGeoCoords || hasLegacyCoords;
+    });
+
     if (photosWithCoords.length === 0) {
       toast.error('No hay fotos con coordenadas para exportar');
       return;
     }
-    
+
     let csv = 'Nombre de Imagen;X;Y;Z;URL Imagen\n';
-    
+
     photosWithCoords.forEach(photo => {
-      const x = (parseFloat(photo.latitude) / 1) || 0;
-      const y = (parseFloat(photo.longitude) / 1) || 0;
-      
-      let z = 0;
-      const zMatch = photo.description?.match(/z:\s*([-\d.,]+)/i);
-      if (zMatch) {
-        z = (parseFloat(zMatch[1]) / 1) || 0;
+      // Priorizar coordenadas del proyecto, luego geo, luego legacy
+      let x, y, z;
+
+      if (photo.project_x !== undefined && photo.project_x !== null) {
+        x = parseFloat(photo.project_x) || 0;
+        y = parseFloat(photo.project_y) || 0;
+        z = parseFloat(photo.project_z) || 0;
+      } else if (photo.geo_latitude !== undefined && photo.geo_latitude !== null) {
+        x = parseFloat(photo.geo_latitude) || 0;
+        y = parseFloat(photo.geo_longitude) || 0;
+        z = 0; // Las coordenadas geo no tienen Z por defecto
+      } else {
+        x = parseFloat(photo.latitude) || 0;
+        y = parseFloat(photo.longitude) || 0;
+        // Intentar extraer Z de la descripción (sistema legacy)
+        const zMatch = photo.description?.match(/z:\s*([-\d.,]+)/i);
+        z = zMatch ? (parseFloat(zMatch[1]) || 0) : 0;
       }
-      
+
       const url = `https://photosite360-frontend.onrender.com/projects/${id}/view/${photo.id}`;
       csv += `"${photo.title}";${x};${y};${z};"${url}"\n`;
     });
-    
+
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const downloadUrl = URL.createObjectURL(blob);
