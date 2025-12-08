@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar';
 import CameraMap3D from '../components/CameraMap3D';
 import EnhancedMapView from '../components/EnhancedMapView';
 import ProfessionalMapView from '../components/ProfessionalMapView';
+import CoordinateImportModal from '../components/CoordinateImportModal';
 import api from '../config/axios';
 import toast from 'react-hot-toast';
 import {
@@ -15,7 +16,8 @@ import {
   Link2,
   Download,
   Trash2,
-  Map
+  Map,
+  FileSpreadsheet
 } from 'lucide-react';
 import './ProjectDetail.css';
 
@@ -31,6 +33,7 @@ const ProjectDetail = () => {
   const [showEnhancedMap, setShowEnhancedMap] = useState(false);
   const [showProfessionalMap, setShowProfessionalMap] = useState(false);
   const [showFileImport, setShowFileImport] = useState(false);
+  const [showCoordinateImport, setShowCoordinateImport] = useState(false);
 
   useEffect(() => {
     fetchProject();
@@ -442,6 +445,16 @@ const ProjectDetail = () => {
               🗺️ Mapa Profesional UTM
             </button>
 
+            {/* Botón importar coordenadas */}
+            <button
+              className="btn btn-primary"
+              onClick={() => setShowCoordinateImport(true)}
+              title="Importar coordenadas desde CSV/Excel"
+            >
+              <FileSpreadsheet size={20} />
+              Importar Coordenadas
+            </button>
+
             {photosWithCoords.length > 0 && (
               <>
                 <button className="btn btn-secondary" onClick={exportToCSV}>
@@ -670,7 +683,7 @@ const ProjectDetail = () => {
                 <li>📐 DWG - Planos de AutoCAD</li>
                 <li>🗺️ Shapefile - Datos GIS profesionales</li>
               </ul>
-              <button 
+              <button
                 className="btn btn-primary"
                 onClick={() => setShowFileImport(false)}
               >
@@ -679,6 +692,19 @@ const ProjectDetail = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal importar coordenadas */}
+      {showCoordinateImport && (
+        <CoordinateImportModal
+          project={project}
+          onClose={() => setShowCoordinateImport(false)}
+          onImportSuccess={() => {
+            fetchPhotos();
+            fetchNormalImages();
+            setShowCoordinateImport(false);
+          }}
+        />
       )}
     </div>
   );
