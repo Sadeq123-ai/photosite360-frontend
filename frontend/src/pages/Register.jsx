@@ -8,6 +8,7 @@ import './Auth.css'
 const Register = () => {
   const [formData, setFormData] = useState({
     full_name: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -26,7 +27,7 @@ const Register = () => {
     e.preventDefault()
     
     // ✅ Validaciones mejoradas
-    if (!formData.full_name.trim() || !formData.email.trim() || !formData.password) {
+    if (!formData.full_name.trim() || !formData.username.trim() || !formData.email.trim() || !formData.password) {
       toast.error('Por favor completa todos los campos')
       return
     }
@@ -47,6 +48,7 @@ const Register = () => {
       // ✅ Asegurar que los datos son strings
       await register({
         full_name: String(formData.full_name).trim(),
+        username: String(formData.username).trim(),
         email: String(formData.email).trim(),
         password: formData.password
       })
@@ -84,6 +86,24 @@ const Register = () => {
               required
               disabled={loading}
               placeholder="Juan Pérez"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="username">
+              <User size={18} />
+              Nombre de usuario
+            </label>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              className="input"
+              value={formData.username}
+              onChange={handleChange}
+              required
+              disabled={loading}
+              placeholder="juanperez"
             />
           </div>
 
