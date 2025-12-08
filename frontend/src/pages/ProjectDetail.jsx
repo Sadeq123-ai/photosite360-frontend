@@ -122,8 +122,8 @@ const ProjectDetail = () => {
         if (txtFiles[photoData.baseName]) {
           const txtFormData = new FormData();
           txtFormData.append('file', txtFiles[photoData.baseName]);
-          
-          await api.post(`/projects/${id}/photos/${photoData.id}/coordinates`, txtFormData, {
+
+          await api.post(`/projects/${id}/photos/${photoData.id}/coordinates/upload`, txtFormData, {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
