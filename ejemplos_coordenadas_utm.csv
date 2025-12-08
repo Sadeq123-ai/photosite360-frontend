@@ -1,0 +1,8 @@
+nombre_imagen;utm_easting;utm_northing;utm_zone;tipo
+IMG_001.jpg;440250.123;4475123.456;30;foto360
+IMG_002.jpg;440255.789;4475130.234;30;foto360
+IMG_003.jpg;440248.567;4475118.901;30;foto360
+IMG_004.jpg;440252.345;4475125.678;30;foto360
+IMG_005.jpg;440258.901;4475135.432;30;foto360
+plano_topografico.jpg;440250.000;4475120.000;30;imagen
+incidente_derrumbe.jpg;440260.500;4475140.200;30;incidencia

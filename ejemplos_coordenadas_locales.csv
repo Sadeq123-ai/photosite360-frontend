@@ -1,0 +1,10 @@
+nombre_imagen;x;y;z;tipo
+IMG_001.jpg;-8.11285;-90.52344;19.05760;foto360
+IMG_002.jpg;-8.15432;-91.23456;19.12345;foto360
+IMG_003.jpg;-7.98765;-89.87654;18.98765;foto360
+IMG_004.jpg;-8.05123;-90.11234;19.23456;foto360
+IMG_005.jpg;-8.20987;-91.45678;19.08765;foto360
+plano_fachada.jpg;0;0;0;imagen
+plano_planta.jpg;0;0;5;imagen
+incidente_grieta_muro.jpg;5.5;10.3;1.2;incidencia
+incidente_humedad.jpg;-3.2;8.7;2.5;incidencia
