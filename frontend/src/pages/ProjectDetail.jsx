@@ -5,6 +5,7 @@ import CameraMap3D from '../components/CameraMap3D';
 import EnhancedMapView from '../components/EnhancedMapView';
 import ProfessionalMapView from '../components/ProfessionalMapView';
 import CoordinateImportModal from '../components/CoordinateImportModal';
+import ExportCSVModal from '../components/ExportCSVModal';
 import api from '../config/axios';
 import toast from 'react-hot-toast';
 import {
@@ -34,6 +35,7 @@ const ProjectDetail = () => {
   const [showProfessionalMap, setShowProfessionalMap] = useState(false);
   const [showFileImport, setShowFileImport] = useState(false);
   const [showCoordinateImport, setShowCoordinateImport] = useState(false);
+  const [showExportCSV, setShowExportCSV] = useState(false);
 
   useEffect(() => {
     fetchProject();
@@ -206,63 +208,7 @@ const ProjectDetail = () => {
     toast.success('URL copiada al portapapeles');
   };
 
-  const exportToCSV = () => {
-    // Filtrar fotos con coordenadas (soportar múltiples sistemas)
-    const photosWithCoords = photos.filter(p => {
-      // Coordenadas del proyecto (X, Y)
-      const hasProjectCoords = p.project_x !== undefined && p.project_x !== null &&
-                               p.project_y !== undefined && p.project_y !== null;
-      // Coordenadas geográficas (nuevo sistema)
-      const hasGeoCoords = p.geo_latitude !== undefined && p.geo_latitude !== null &&
-                          p.geo_longitude !== undefined && p.geo_longitude !== null;
-      // Coordenadas legacy
-      const hasLegacyCoords = p.latitude !== undefined && p.latitude !== null &&
-                             p.longitude !== undefined && p.longitude !== null;
-      return hasProjectCoords || hasGeoCoords || hasLegacyCoords;
-    });
-
-    if (photosWithCoords.length === 0) {
-      toast.error('No hay fotos con coordenadas para exportar');
-      return;
-    }
-
-    let csv = 'Nombre de Imagen;X;Y;Z;URL Imagen\n';
-
-    photosWithCoords.forEach(photo => {
-      // Priorizar coordenadas del proyecto, luego geo, luego legacy
-      let x, y, z;
-
-      if (photo.project_x !== undefined && photo.project_x !== null) {
-        x = parseFloat(photo.project_x) || 0;
-        y = parseFloat(photo.project_y) || 0;
-        z = parseFloat(photo.project_z) || 0;
-      } else if (photo.geo_latitude !== undefined && photo.geo_latitude !== null) {
-        x = parseFloat(photo.geo_latitude) || 0;
-        y = parseFloat(photo.geo_longitude) || 0;
-        z = 0; // Las coordenadas geo no tienen Z por defecto
-      } else {
-        x = parseFloat(photo.latitude) || 0;
-        y = parseFloat(photo.longitude) || 0;
-        // Intentar extraer Z de la descripción (sistema legacy)
-        const zMatch = photo.description?.match(/z:\s*([-\d.,]+)/i);
-        z = zMatch ? (parseFloat(zMatch[1]) || 0) : 0;
-      }
-
-      const url = `https://photosite360-frontend.onrender.com/projects/${id}/view/${photo.id}`;
-      csv += `"${photo.title}";${x};${y};${z};"${url}"\n`;
-    });
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const downloadUrl = URL.createObjectURL(blob);
-    link.setAttribute('href', downloadUrl);
-    link.setAttribute('download', `${project.name}_Coordenadas.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success('Archivo CSV exportado');
-  };
+  // Función de exportación CSV ahora se maneja en el modal ExportCSVModal
 
   // ✅ FUNCIÓN: Manejar captura de imágenes desde el mapa
   const handlePhotoCapture = async (photoData) => {
@@ -457,7 +403,11 @@ const ProjectDetail = () => {
 
             {photosWithCoords.length > 0 && (
               <>
-                <button className="btn btn-secondary" onClick={exportToCSV}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setShowExportCSV(true)}
+                  title="Exportar coordenadas a CSV con opciones personalizadas"
+                >
                   <Download size={20} />
                   Exportar CSV
                 </button>
@@ -704,6 +654,16 @@ const ProjectDetail = () => {
             fetchNormalImages();
             setShowCoordinateImport(false);
           }}
+        />
+      )}
+
+      {/* Modal exportar CSV */}
+      {showExportCSV && (
+        <ExportCSVModal
+          project={project}
+          photos={photos}
+          normalImages={normalImages}
+          onClose={() => setShowExportCSV(false)}
         />
       )}
     </div>
