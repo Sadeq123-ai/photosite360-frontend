@@ -156,8 +156,19 @@ const ExportCSVModal = ({ project, photos, normalImages, onClose }) => {
       if (columns.origen) row.push(item.coordinate_source || 'manual');
 
       if (columns.url) {
-        const url = item.url || item.unique_url || '';
-        row.push(`"${url}"`);
+        // Generar URL de la plataforma según el tipo de objeto
+        let platformUrl = '';
+        const baseUrl = window.location.origin; // https://photosite360-frontend.onrender.com
+
+        if (item.source === 'foto360' || item.object_type === '360photo') {
+          // Para fotos 360°: /projects/{project_id}/view/{photo_id}
+          platformUrl = `${baseUrl}/projects/${project.id}/view/${item.id}`;
+        } else if (item.source === 'imagen' || item.image_type) {
+          // Para imágenes normales: /projects/{project_id}/gallery/{image_id}
+          platformUrl = `${baseUrl}/projects/${project.id}/gallery/${item.id}`;
+        }
+
+        row.push(`"${platformUrl}"`);
       }
 
       csv += row.join(separator) + '\n';
