@@ -231,33 +231,79 @@ const CameraMap3D = ({ photos, onPhotoClick, activePhotoId, onClose, embedded = 
   const normalizedPhotos = useMemo(() => {
     if (photosWithCoords.length === 0) return []
 
-    // Extraer todas las coordenadas
+    // Extraer todas las coordenadas VÁLIDAS
     const coords = photosWithCoords.map(p => {
       let x, y, z
-      if (p.project_x !== undefined && p.project_y !== undefined) {
-        x = parseFloat(p.project_x) || 0
-        y = parseFloat(p.project_y) || 0
-        z = parseFloat(p.project_z) || 0
-      } else {
-        x = parseFloat(p.latitude) || 0
-        y = parseFloat(p.longitude) || 0
-        z = parseFloat(p.description?.match(/z:([-\d.]+)/)?.[1] || 0)
+
+      // Prioridad 1: Coordenadas del proyecto (nuevo sistema)
+      if (p.project_x !== undefined && p.project_x !== null && p.project_x !== '') {
+        const px = parseFloat(p.project_x)
+        const py = parseFloat(p.project_y)
+        const pz = parseFloat(p.project_z)
+
+        // Verificar que sean números válidos
+        if (!isNaN(px) && !isNaN(py)) {
+          x = px
+          y = py
+          z = !isNaN(pz) ? pz : 0
+          return { x, y, z, valid: true }
+        }
       }
-      return { x, y, z }
+
+      // Prioridad 2: Coordenadas legacy (latitude/longitude)
+      if (p.latitude !== undefined && p.latitude !== null && p.latitude !== '') {
+        const lat = parseFloat(p.latitude)
+        const lng = parseFloat(p.longitude)
+
+        if (!isNaN(lat) && !isNaN(lng)) {
+          x = lat
+          y = lng
+          z = parseFloat(p.description?.match(/z:([-\d.]+)/)?.[1]) || 0
+          return { x, y, z, valid: true }
+        }
+      }
+
+      // Prioridad 3: Coordenadas geo (nuevo sistema)
+      if (p.geo_latitude !== undefined && p.geo_latitude !== null) {
+        const lat = parseFloat(p.geo_latitude)
+        const lng = parseFloat(p.geo_longitude)
+
+        if (!isNaN(lat) && !isNaN(lng)) {
+          x = lat
+          y = lng
+          z = 0
+          return { x, y, z, valid: true }
+        }
+      }
+
+      // Si no tiene coordenadas válidas, marcar como inválido
+      return { x: 0, y: 0, z: 0, valid: false }
     })
 
-    // Calcular el centro (mínimo de cada eje para coordenadas UTM)
-    const minX = Math.min(...coords.map(c => c.x))
-    const minY = Math.min(...coords.map(c => c.y))
-    const minZ = Math.min(...coords.map(c => c.z))
+    // Filtrar solo coordenadas válidas para calcular el centro
+    const validCoords = coords.filter(c => c.valid)
 
-    // Normalizar: restar el mínimo a cada coordenada
-    return photosWithCoords.map((photo, i) => ({
-      ...photo,
-      normalized_x: coords[i].x - minX,
-      normalized_y: coords[i].y - minY,
-      normalized_z: coords[i].z - minZ
-    }))
+    if (validCoords.length === 0) return photosWithCoords
+
+    // Calcular el mínimo de cada eje (para coordenadas UTM grandes)
+    const minX = Math.min(...validCoords.map(c => c.x))
+    const minY = Math.min(...validCoords.map(c => c.y))
+    const minZ = Math.min(...validCoords.map(c => c.z))
+
+    // Normalizar: restar el mínimo a cada coordenada VÁLIDA
+    return photosWithCoords.map((photo, i) => {
+      if (!coords[i].valid) {
+        // Si la foto no tiene coordenadas válidas, no agregarle normalized
+        return photo
+      }
+
+      return {
+        ...photo,
+        normalized_x: coords[i].x - minX,
+        normalized_y: coords[i].y - minY,
+        normalized_z: coords[i].z - minZ
+      }
+    })
   }, [photosWithCoords])
 
   if (embedded) {
