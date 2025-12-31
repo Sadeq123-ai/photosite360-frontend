@@ -212,12 +212,6 @@ const Scene = ({ photos, onPhotoClick, activePhotoId }) => {
 }
 
 const CameraMap3D = ({ photos, onPhotoClick, activePhotoId, onClose, embedded = false }) => {
-  // 🔍 DEBUG: Ver todas las fotos que llegan
-  console.log('🔍 CameraMap3D - Total photos:', photos.length)
-  if (photos.length > 0) {
-    console.log('🔍 Primera foto completa:', photos[0])
-  }
-
   // ✅ FILTRAR FOTOS CON COORDENADAS (LEGACY O NUEVO SISTEMA)
   const photosWithCoords = photos.filter(p => {
     // Tiene coordenadas del proyecto (nuevo sistema)
@@ -230,24 +224,8 @@ const CameraMap3D = ({ photos, onPhotoClick, activePhotoId, onClose, embedded = 
     const hasGeoCoords = p.geo_latitude !== undefined && p.geo_latitude !== null &&
                          p.geo_longitude !== undefined && p.geo_longitude !== null
 
-    // 🔍 DEBUG por foto
-    if (hasProjectCoords || hasLegacyCoords || hasGeoCoords) {
-      console.log('✅ Foto CON coords:', {
-        id: p.id,
-        title: p.title || p.filename,
-        project_x: p.project_x,
-        project_y: p.project_y,
-        latitude: p.latitude,
-        longitude: p.longitude,
-        geo_latitude: p.geo_latitude,
-        geo_longitude: p.geo_longitude
-      })
-    }
-
     return hasProjectCoords || hasLegacyCoords || hasGeoCoords
   })
-
-  console.log('🔍 Fotos con coordenadas filtradas:', photosWithCoords.length)
 
   // ✅ NORMALIZAR COORDENADAS GRANDES (para coordenadas UTM o grandes)
   // Calcular centro de masa para centrar el modelo en el origen
@@ -259,7 +237,8 @@ const CameraMap3D = ({ photos, onPhotoClick, activePhotoId, onClose, embedded = 
       let x, y, z
 
       // Prioridad 1: Coordenadas del proyecto (nuevo sistema)
-      if (p.project_x !== undefined && p.project_x !== null && p.project_x !== '') {
+      if (p.project_x !== undefined && p.project_x !== null && p.project_x !== '' &&
+          p.project_y !== undefined && p.project_y !== null && p.project_y !== '') {
         const px = parseFloat(p.project_x)
         const py = parseFloat(p.project_y)
         const pz = parseFloat(p.project_z)
@@ -274,7 +253,8 @@ const CameraMap3D = ({ photos, onPhotoClick, activePhotoId, onClose, embedded = 
       }
 
       // Prioridad 2: Coordenadas legacy (latitude/longitude)
-      if (p.latitude !== undefined && p.latitude !== null && p.latitude !== '') {
+      if (p.latitude !== undefined && p.latitude !== null && p.latitude !== '' &&
+          p.longitude !== undefined && p.longitude !== null && p.longitude !== '') {
         const lat = parseFloat(p.latitude)
         const lng = parseFloat(p.longitude)
 
@@ -287,7 +267,8 @@ const CameraMap3D = ({ photos, onPhotoClick, activePhotoId, onClose, embedded = 
       }
 
       // Prioridad 3: Coordenadas geo (nuevo sistema)
-      if (p.geo_latitude !== undefined && p.geo_latitude !== null) {
+      if (p.geo_latitude !== undefined && p.geo_latitude !== null &&
+          p.geo_longitude !== undefined && p.geo_longitude !== null) {
         const lat = parseFloat(p.geo_latitude)
         const lng = parseFloat(p.geo_longitude)
 
@@ -306,11 +287,7 @@ const CameraMap3D = ({ photos, onPhotoClick, activePhotoId, onClose, embedded = 
     // Filtrar solo coordenadas válidas para calcular el centro
     const validCoords = coords.filter(c => c.valid)
 
-    console.log('🔍 Normalización - Coords válidas:', validCoords.length)
-    console.log('🔍 Primera coord válida:', validCoords[0])
-
     if (validCoords.length === 0) {
-      console.log('⚠️ NO hay coordenadas válidas para normalizar')
       return photosWithCoords
     }
 
@@ -318,8 +295,6 @@ const CameraMap3D = ({ photos, onPhotoClick, activePhotoId, onClose, embedded = 
     const minX = Math.min(...validCoords.map(c => c.x))
     const minY = Math.min(...validCoords.map(c => c.y))
     const minZ = Math.min(...validCoords.map(c => c.z))
-
-    console.log('🔍 Centro de normalización (min):', { minX, minY, minZ })
 
     // Normalizar: restar el mínimo a cada coordenada VÁLIDA
     return photosWithCoords.map((photo, i) => {
