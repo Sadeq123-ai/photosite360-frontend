@@ -83,8 +83,18 @@ const ExportCSVModal = ({ project, photos, normalImages, onClose }) => {
   };
 
   const handleExport = () => {
-    if (itemsWithCoords.length === 0) {
-      toast.error('No hay elementos con coordenadas para exportar');
+    // Usar todos los items si no se seleccionaron columnas de coordenadas
+    // O si solo se seleccionaron nombre/url
+    const coordinateColumnsSelected = columns.localX || columns.localY || columns.localZ ||
+                                      columns.utmEasting || columns.utmNorthing || columns.utmZone ||
+                                      columns.geoLatitude || columns.geoLongitude;
+
+    // Si solo se exporta nombre/url, exportar todos los items
+    // Si se exportan coordenadas, solo exportar los que tienen coordenadas
+    const itemsToExport = coordinateColumnsSelected ? itemsWithCoords : allItems;
+
+    if (itemsToExport.length === 0) {
+      toast.error('No hay elementos para exportar');
       return;
     }
 
@@ -116,7 +126,7 @@ const ExportCSVModal = ({ project, photos, normalImages, onClose }) => {
     // Construir CSV
     let csv = headers.join(separator) + '\n';
 
-    itemsWithCoords.forEach(item => {
+    itemsToExport.forEach(item => {
       const row = [];
 
       if (columns.nombre) {
@@ -185,7 +195,7 @@ const ExportCSVModal = ({ project, photos, normalImages, onClose }) => {
     link.click();
     document.body.removeChild(link);
 
-    toast.success(`✅ Exportado: ${itemsWithCoords.length} elementos`);
+    toast.success(`✅ Exportado: ${itemsToExport.length} elementos`);
     onClose();
   };
 

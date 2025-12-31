@@ -401,24 +401,25 @@ const ProjectDetail = () => {
               Importar Coordenadas
             </button>
 
+            {/* Botón Exportar CSV - SIEMPRE VISIBLE */}
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowExportCSV(true)}
+              title="Exportar a CSV (incluye nombre, url y coordenadas si existen)"
+            >
+              <Download size={20} />
+              Exportar CSV
+            </button>
+
+            {/* Mapa Avanzado solo si hay coordenadas */}
             {photosWithCoords.length > 0 && (
-              <>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setShowExportCSV(true)}
-                  title="Exportar coordenadas a CSV con opciones personalizadas"
-                >
-                  <Download size={20} />
-                  Exportar CSV
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setShowEnhancedMap(true)}
-                >
-                  <Map size={20} />
-                  Mapa Avanzado
-                </button>
-              </>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowEnhancedMap(true)}
+              >
+                <Map size={20} />
+                Mapa Avanzado
+              </button>
             )}
 
             {/* Botón sincronizar coordenadas 360° */}

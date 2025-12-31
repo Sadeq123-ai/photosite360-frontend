@@ -45,9 +45,15 @@ const CameraMarker = ({ photo, onClick, isActive }) => {
   // ✅ DETECTAR TIPO DE FOTO Y COORDENADAS
   const isNormalImage = photo.type === 'normal' || photo.object_type === 'image'
 
-  // Priorizar project_x, project_y, project_z (nuevo sistema)
+  // ✅ USAR COORDENADAS NORMALIZADAS si existen (para coordenadas grandes)
   let x, y, z
-  if (photo.project_x !== undefined && photo.project_y !== undefined) {
+  if (photo.normalized_x !== undefined) {
+    // Usar coordenadas normalizadas (ya centradas en el origen)
+    x = photo.normalized_x
+    y = photo.normalized_y
+    z = photo.normalized_z
+  } else if (photo.project_x !== undefined && photo.project_y !== undefined) {
+    // Coordenadas del proyecto (nuevo sistema)
     x = parseFloat(photo.project_x) || 0
     y = parseFloat(photo.project_y) || 0
     z = parseFloat(photo.project_z) || 0
@@ -220,12 +226,46 @@ const CameraMap3D = ({ photos, onPhotoClick, activePhotoId, onClose, embedded = 
     return hasProjectCoords || hasLegacyCoords || hasGeoCoords
   })
 
+  // ✅ NORMALIZAR COORDENADAS GRANDES (para coordenadas UTM o grandes)
+  // Calcular centro de masa para centrar el modelo en el origen
+  const normalizedPhotos = useMemo(() => {
+    if (photosWithCoords.length === 0) return []
+
+    // Extraer todas las coordenadas
+    const coords = photosWithCoords.map(p => {
+      let x, y, z
+      if (p.project_x !== undefined && p.project_y !== undefined) {
+        x = parseFloat(p.project_x) || 0
+        y = parseFloat(p.project_y) || 0
+        z = parseFloat(p.project_z) || 0
+      } else {
+        x = parseFloat(p.latitude) || 0
+        y = parseFloat(p.longitude) || 0
+        z = parseFloat(p.description?.match(/z:([-\d.]+)/)?.[1] || 0)
+      }
+      return { x, y, z }
+    })
+
+    // Calcular el centro (mínimo de cada eje para coordenadas UTM)
+    const minX = Math.min(...coords.map(c => c.x))
+    const minY = Math.min(...coords.map(c => c.y))
+    const minZ = Math.min(...coords.map(c => c.z))
+
+    // Normalizar: restar el mínimo a cada coordenada
+    return photosWithCoords.map((photo, i) => ({
+      ...photo,
+      normalized_x: coords[i].x - minX,
+      normalized_y: coords[i].y - minY,
+      normalized_z: coords[i].z - minZ
+    }))
+  }, [photosWithCoords])
+
   if (embedded) {
     return (
       <div className="camera-map-embedded">
         <Canvas>
-          <Scene 
-            photos={photosWithCoords} 
+          <Scene
+            photos={normalizedPhotos}
             onPhotoClick={onPhotoClick}
             activePhotoId={activePhotoId}
           />
@@ -242,7 +282,7 @@ const CameraMap3D = ({ photos, onPhotoClick, activePhotoId, onClose, embedded = 
       <div className="camera-map-header">
         <div>
           <h3>Vista 3D del Proyecto</h3>
-          <p>{photosWithCoords.length} fotos con coordenadas</p>
+          <p>{normalizedPhotos.length} fotos con coordenadas</p>
         </div>
         <button className="camera-map-close" onClick={onClose}>
           <X size={24} />
@@ -251,8 +291,8 @@ const CameraMap3D = ({ photos, onPhotoClick, activePhotoId, onClose, embedded = 
 
       <div className="camera-map-container">
         <Canvas>
-          <Scene 
-            photos={photosWithCoords} 
+          <Scene
+            photos={normalizedPhotos}
             onPhotoClick={onPhotoClick}
             activePhotoId={activePhotoId}
           />
