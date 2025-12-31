@@ -212,6 +212,12 @@ const Scene = ({ photos, onPhotoClick, activePhotoId }) => {
 }
 
 const CameraMap3D = ({ photos, onPhotoClick, activePhotoId, onClose, embedded = false }) => {
+  // 🔍 DEBUG: Ver todas las fotos que llegan
+  console.log('🔍 CameraMap3D - Total photos:', photos.length)
+  if (photos.length > 0) {
+    console.log('🔍 Primera foto completa:', photos[0])
+  }
+
   // ✅ FILTRAR FOTOS CON COORDENADAS (LEGACY O NUEVO SISTEMA)
   const photosWithCoords = photos.filter(p => {
     // Tiene coordenadas del proyecto (nuevo sistema)
@@ -223,8 +229,25 @@ const CameraMap3D = ({ photos, onPhotoClick, activePhotoId, onClose, embedded = 
     // Tiene coordenadas geo (nuevo sistema)
     const hasGeoCoords = p.geo_latitude !== undefined && p.geo_latitude !== null &&
                          p.geo_longitude !== undefined && p.geo_longitude !== null
+
+    // 🔍 DEBUG por foto
+    if (hasProjectCoords || hasLegacyCoords || hasGeoCoords) {
+      console.log('✅ Foto CON coords:', {
+        id: p.id,
+        title: p.title || p.filename,
+        project_x: p.project_x,
+        project_y: p.project_y,
+        latitude: p.latitude,
+        longitude: p.longitude,
+        geo_latitude: p.geo_latitude,
+        geo_longitude: p.geo_longitude
+      })
+    }
+
     return hasProjectCoords || hasLegacyCoords || hasGeoCoords
   })
+
+  console.log('🔍 Fotos con coordenadas filtradas:', photosWithCoords.length)
 
   // ✅ NORMALIZAR COORDENADAS GRANDES (para coordenadas UTM o grandes)
   // Calcular centro de masa para centrar el modelo en el origen
@@ -283,12 +306,20 @@ const CameraMap3D = ({ photos, onPhotoClick, activePhotoId, onClose, embedded = 
     // Filtrar solo coordenadas válidas para calcular el centro
     const validCoords = coords.filter(c => c.valid)
 
-    if (validCoords.length === 0) return photosWithCoords
+    console.log('🔍 Normalización - Coords válidas:', validCoords.length)
+    console.log('🔍 Primera coord válida:', validCoords[0])
+
+    if (validCoords.length === 0) {
+      console.log('⚠️ NO hay coordenadas válidas para normalizar')
+      return photosWithCoords
+    }
 
     // Calcular el mínimo de cada eje (para coordenadas UTM grandes)
     const minX = Math.min(...validCoords.map(c => c.x))
     const minY = Math.min(...validCoords.map(c => c.y))
     const minZ = Math.min(...validCoords.map(c => c.z))
+
+    console.log('🔍 Centro de normalización (min):', { minX, minY, minZ })
 
     // Normalizar: restar el mínimo a cada coordenada VÁLIDA
     return photosWithCoords.map((photo, i) => {
