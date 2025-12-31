@@ -45,23 +45,32 @@ const CameraMarker = ({ photo, onClick, isActive }) => {
   // ✅ DETECTAR TIPO DE FOTO Y COORDENADAS
   const isNormalImage = photo.type === 'normal' || photo.object_type === 'image'
 
-  // ✅ USAR COORDENADAS NORMALIZADAS si existen (para coordenadas grandes)
+  // ✅ EXTRAER COORDENADAS (prioridad: project > latitude/longitude > geo)
   let x, y, z
-  if (photo.normalized_x !== undefined) {
-    // Usar coordenadas normalizadas (ya centradas en el origen)
-    x = photo.normalized_x
-    y = photo.normalized_y
-    z = photo.normalized_z
-  } else if (photo.project_x !== undefined && photo.project_y !== undefined) {
+
+  if (photo.project_x !== undefined && photo.project_x !== null &&
+      photo.project_y !== undefined && photo.project_y !== null) {
     // Coordenadas del proyecto (nuevo sistema)
-    x = parseFloat(photo.project_x) || 0
-    y = parseFloat(photo.project_y) || 0
+    x = parseFloat(photo.project_x)
+    y = parseFloat(photo.project_y)
     z = parseFloat(photo.project_z) || 0
-  } else {
+  } else if (photo.latitude !== undefined && photo.latitude !== null &&
+             photo.longitude !== undefined && photo.longitude !== null) {
     // Legacy: usar latitude/longitude para fotos 360
-    x = parseFloat(photo.latitude) || 0
-    y = parseFloat(photo.longitude) || 0
-    z = parseFloat(photo.description?.match(/z:([-\d.]+)/)?.[1] || 0)
+    x = parseFloat(photo.latitude)
+    y = parseFloat(photo.longitude)
+    z = parseFloat(photo.description?.match(/z:([-\d.]+)/)?.[1]) || 0
+  } else if (photo.geo_latitude !== undefined && photo.geo_latitude !== null &&
+             photo.geo_longitude !== undefined && photo.geo_longitude !== null) {
+    // Coordenadas geográficas
+    x = parseFloat(photo.geo_latitude)
+    y = parseFloat(photo.geo_longitude)
+    z = 0
+  } else {
+    // Sin coordenadas válidas
+    x = 0
+    y = 0
+    z = 0
   }
 
   // Obtener orientación (solo para fotos 360°)
@@ -227,97 +236,15 @@ const CameraMap3D = ({ photos, onPhotoClick, activePhotoId, onClose, embedded = 
     return hasProjectCoords || hasLegacyCoords || hasGeoCoords
   })
 
-  // ✅ NORMALIZAR COORDENADAS GRANDES (para coordenadas UTM o grandes)
-  // Calcular centro de masa para centrar el modelo en el origen
-  const normalizedPhotos = useMemo(() => {
-    if (photosWithCoords.length === 0) return []
-
-    // Extraer todas las coordenadas VÁLIDAS
-    const coords = photosWithCoords.map(p => {
-      let x, y, z
-
-      // Prioridad 1: Coordenadas del proyecto (nuevo sistema)
-      if (p.project_x !== undefined && p.project_x !== null && p.project_x !== '' &&
-          p.project_y !== undefined && p.project_y !== null && p.project_y !== '') {
-        const px = parseFloat(p.project_x)
-        const py = parseFloat(p.project_y)
-        const pz = parseFloat(p.project_z)
-
-        // Verificar que sean números válidos
-        if (!isNaN(px) && !isNaN(py)) {
-          x = px
-          y = py
-          z = !isNaN(pz) ? pz : 0
-          return { x, y, z, valid: true }
-        }
-      }
-
-      // Prioridad 2: Coordenadas legacy (latitude/longitude)
-      if (p.latitude !== undefined && p.latitude !== null && p.latitude !== '' &&
-          p.longitude !== undefined && p.longitude !== null && p.longitude !== '') {
-        const lat = parseFloat(p.latitude)
-        const lng = parseFloat(p.longitude)
-
-        if (!isNaN(lat) && !isNaN(lng)) {
-          x = lat
-          y = lng
-          z = parseFloat(p.description?.match(/z:([-\d.]+)/)?.[1]) || 0
-          return { x, y, z, valid: true }
-        }
-      }
-
-      // Prioridad 3: Coordenadas geo (nuevo sistema)
-      if (p.geo_latitude !== undefined && p.geo_latitude !== null &&
-          p.geo_longitude !== undefined && p.geo_longitude !== null) {
-        const lat = parseFloat(p.geo_latitude)
-        const lng = parseFloat(p.geo_longitude)
-
-        if (!isNaN(lat) && !isNaN(lng)) {
-          x = lat
-          y = lng
-          z = 0
-          return { x, y, z, valid: true }
-        }
-      }
-
-      // Si no tiene coordenadas válidas, marcar como inválido
-      return { x: 0, y: 0, z: 0, valid: false }
-    })
-
-    // Filtrar solo coordenadas válidas para calcular el centro
-    const validCoords = coords.filter(c => c.valid)
-
-    if (validCoords.length === 0) {
-      return photosWithCoords
-    }
-
-    // Calcular el mínimo de cada eje (para coordenadas UTM grandes)
-    const minX = Math.min(...validCoords.map(c => c.x))
-    const minY = Math.min(...validCoords.map(c => c.y))
-    const minZ = Math.min(...validCoords.map(c => c.z))
-
-    // Normalizar: restar el mínimo a cada coordenada VÁLIDA
-    return photosWithCoords.map((photo, i) => {
-      if (!coords[i].valid) {
-        // Si la foto no tiene coordenadas válidas, no agregarle normalized
-        return photo
-      }
-
-      return {
-        ...photo,
-        normalized_x: coords[i].x - minX,
-        normalized_y: coords[i].y - minY,
-        normalized_z: coords[i].z - minZ
-      }
-    })
-  }, [photosWithCoords])
+  // Usar directamente las fotos con coordenadas (sin normalización compleja)
+  // Esto mantiene las distancias relativas correctas automáticamente
 
   if (embedded) {
     return (
       <div className="camera-map-embedded">
         <Canvas>
           <Scene
-            photos={normalizedPhotos}
+            photos={photosWithCoords}
             onPhotoClick={onPhotoClick}
             activePhotoId={activePhotoId}
           />
@@ -334,7 +261,7 @@ const CameraMap3D = ({ photos, onPhotoClick, activePhotoId, onClose, embedded = 
       <div className="camera-map-header">
         <div>
           <h3>Vista 3D del Proyecto</h3>
-          <p>{normalizedPhotos.length} fotos con coordenadas</p>
+          <p>{photosWithCoords.length} fotos con coordenadas</p>
         </div>
         <button className="camera-map-close" onClick={onClose}>
           <X size={24} />
@@ -344,7 +271,7 @@ const CameraMap3D = ({ photos, onPhotoClick, activePhotoId, onClose, embedded = 
       <div className="camera-map-container">
         <Canvas>
           <Scene
-            photos={normalizedPhotos}
+            photos={photosWithCoords}
             onPhotoClick={onPhotoClick}
             activePhotoId={activePhotoId}
           />
