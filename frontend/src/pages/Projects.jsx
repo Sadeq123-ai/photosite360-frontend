@@ -5,7 +5,7 @@ import PendingInvitations from '../components/PendingInvitations'
 import InviteModal from '../components/InviteModal'
 import api from '../config/axios'
 import toast from 'react-hot-toast'
-import { Plus, Search, Trash2, FolderOpen, X, Users } from 'lucide-react'
+import { Plus, Search, Trash2, FolderOpen, X, Users, Database } from 'lucide-react'
 import './Projects.css'
 
 const Projects = () => {
@@ -109,7 +109,16 @@ const Projects = () => {
             <p>Gestiona tus proyectos de construcción</p>
           </div>
           <div className="projects-header-actions">
-            <button 
+            <button
+              className="btn btn-secondary"
+              onClick={() => navigate('/admin/database')}
+              title="Administrador de Base de Datos"
+              style={{ background: '#6366f1' }}
+            >
+              <Database size={20} />
+              Base de Datos
+            </button>
+            <button
               className="btn btn-success"
               onClick={() => setShowGlobalInviteModal(true)}
               title="Invitar colaborador global"
@@ -117,8 +126,8 @@ const Projects = () => {
               <Users size={20} />
               Invitar Colaborador Global
             </button>
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               onClick={() => setShowModal(true)}
             >
               <Plus size={20} />

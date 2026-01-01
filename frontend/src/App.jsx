@@ -13,6 +13,7 @@ const ProjectDetail = lazy(() => import('./pages/ProjectDetail'))
 const ImageGallery = lazy(() => import('./pages/ImageGallery'))  // ✅ NUEVO
 const PublicPhotoView = lazy(() => import('./pages/PublicPhotoView'))
 const ProjectPhotoView = lazy(() => import('./pages/ProjectPhotoView'))
+const DatabaseAdmin = lazy(() => import('./pages/DatabaseAdmin'))  // ✅ ADMIN DB
 
 // Componente de Loading mejorado
 const PageLoader = () => (
@@ -81,6 +82,14 @@ function App() {
     <ImageGallery />
   </ProtectedRoute>
 } />
+
+        {/* ✅ NUEVA RUTA: Administrador de Base de Datos */}
+        <Route path="/admin/database" element={
+          <ProtectedRoute>
+            <DatabaseAdmin />
+          </ProtectedRoute>
+        } />
+
         <Route path="/projects/:id/view/:photoId" element={
           <ProtectedRoute>
             <ProjectPhotoView />
